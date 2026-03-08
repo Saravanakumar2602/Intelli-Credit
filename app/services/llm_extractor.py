@@ -1,9 +1,12 @@
 
-import os
-import openai
-import json
 
-openai.api_key = os.getenv("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")
+
+import os
+import json
+import google.generativeai as genai
+
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+genai.configure(api_key=GOOGLE_API_KEY)
 
 def extract_financials(text):
     prompt = f"""
@@ -17,9 +20,15 @@ def extract_financials(text):
     Document:
     {text[:6000]}
     """
-    response = openai.ChatCompletion.create(
-        model="gpt-4o-mini",
-        messages=[{"role":"user","content":prompt}]
-    )
-    result = response.choices[0].message.content
-    return json.loads(result)
+    model = genai.GenerativeModel('models/gemini-pro-latest')
+    response = model.generate_content(prompt)
+    result = response.text
+    try:
+        return json.loads(result)
+    except Exception:
+        # If Gemini returns non-JSON, try to extract JSON substring
+        import re
+        match = re.search(r'\{.*\}', result, re.DOTALL)
+        if match:
+            return json.loads(match.group(0))
+        raise ValueError(f"Gemini response not valid JSON: {result}")
