@@ -28,6 +28,7 @@ def analyze_company(file_path: str, company: str):
         }
     except Exception as e:
         import traceback
+        print(traceback.format_exc())
         return JSONResponse(status_code=500, content={
             "error": str(e),
             "traceback": traceback.format_exc()

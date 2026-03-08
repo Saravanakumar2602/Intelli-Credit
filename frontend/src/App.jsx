@@ -29,7 +29,7 @@ function App() {
       // 1. Upload the PDF
       const formData = new FormData();
       formData.append("file", file);
-      const uploadRes = await fetch("/upload", {
+      const uploadRes = await fetch("/upload/", {
         method: "POST",
         body: formData,
       });

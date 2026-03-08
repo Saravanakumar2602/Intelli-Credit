@@ -24,21 +24,21 @@ STRICT RULES:
 
 EXAMPLES:
 If all values are found:
-{
+{{
     "revenue": 1234567,
     "net_profit": 89012,
     "total_debt": 34567,
     "total_assets": 456789,
     "total_liabilities": 12345
-}
+}}
 If some values are missing:
-{
+{{
     "revenue": 0,
     "net_profit": 0,
     "total_debt": 0,
     "total_assets": 456789,
     "total_liabilities": 0
-}
+}}
 
 WARNING: If you output anything except the JSON object, your answer will be rejected.
 
