@@ -1,12 +1,10 @@
 
 
 
+
 import os
 import json
-import google.generativeai as genai
-
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-genai.configure(api_key=GOOGLE_API_KEY)
+import requests
 
 def extract_financials(text):
     prompt = f"""
@@ -20,15 +18,21 @@ def extract_financials(text):
     Document:
     {text[:6000]}
     """
-    model = genai.GenerativeModel('models/gemini-pro-latest')
-    response = model.generate_content(prompt)
-    result = response.text
+    # Use Ollama's local API (default model: qwen3:4b)
+    data = {
+        "model": os.getenv("OLLAMA_MODEL", "qwen3:4b"),
+        "messages": [
+            {"role": "user", "content": prompt}
+        ]
+    }
+    response = requests.post("http://localhost:11434/v1/chat/completions", json=data)
+    response.raise_for_status()
+    result = response.json()["choices"][0]["message"]["content"]
     try:
         return json.loads(result)
     except Exception:
-        # If Gemini returns non-JSON, try to extract JSON substring
         import re
         match = re.search(r'\{.*\}', result, re.DOTALL)
         if match:
             return json.loads(match.group(0))
-        raise ValueError(f"Gemini response not valid JSON: {result}")
+        raise ValueError(f"Ollama response not valid JSON: {result}")
