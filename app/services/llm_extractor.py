@@ -1,5 +1,9 @@
+
+import os
 import openai
 import json
+
+openai.api_key = os.getenv("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")
 
 def extract_financials(text):
     prompt = f"""
