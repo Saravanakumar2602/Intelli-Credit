@@ -1,79 +1,99 @@
 import React, { useState } from "react";
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate } from "react-router-dom";
+import Upload from "./pages/Upload";
+import FinancialData from "./pages/FinancialData";
+import FinancialRatios from "./pages/FinancialRatios";
+import RiskAssessment from "./pages/RiskAssessment";
+import NewsSentiment from "./pages/NewsSentiment";
+import CreditAppraisalMemo from "./pages/CreditAppraisalMemo";
+import "./App.css";
+
+function ResultsNavigation() {
+  const navigate = useNavigate();
+  const navItems = [
+    { path: "/results", label: "Financial Data" },
+    { path: "/ratios", label: "Financial Ratios" },
+    { path: "/risk", label: "Risk Assessment" },
+    { path: "/news", label: "News & Sentiment" },
+    { path: "/cam", label: "Credit Memo" },
+  ];
+
+  return (
+    <nav className="results-nav">
+      <div className="nav-container">
+        <button className="nav-home" onClick={() => navigate("/")}>
+          ← Back to Upload
+        </button>
+        <div className="nav-links">
+          {navItems.map((item) => (
+            <Link key={item.path} to={item.path} className="nav-link">
+              {item.label}
+            </Link>
+          ))}
+        </div>
+      </div>
+    </nav>
+  );
+}
 
 function App() {
-  const [file, setFile] = useState(null);
-  const [company, setCompany] = useState("");
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [analysisData, setAnalysisData] = useState(null);
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
-  };
-
-  const handleCompanyChange = (e) => {
-    setCompany(e.target.value);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    setResult(null);
-    if (!file || !company) {
-      setError("Please select a PDF and enter a company name.");
-      return;
-    }
-    setLoading(true);
-    try {
-      // 1. Upload the PDF
-      const formData = new FormData();
-      formData.append("file", file);
-      const uploadRes = await fetch("/upload/", {
-        method: "POST",
-        body: formData,
-      });
-      if (!uploadRes.ok) throw new Error("File upload failed");
-      const { file_path } = await uploadRes.json();
-      // 2. Call /analyze
-      const analyzeRes = await fetch(
-        `/analyze/?file_path=${encodeURIComponent(file_path)}&company=${encodeURIComponent(company)}`,
-        { method: "POST" }
-      );
-      if (!analyzeRes.ok) throw new Error("Analysis failed");
-      const data = await analyzeRes.json();
-      setResult(data);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+  const handleAnalysisComplete = (data) => {
+    setAnalysisData(data);
   };
 
   return (
-    <div style={{ maxWidth: 600, margin: "40px auto", fontFamily: "sans-serif" }}>
-      <h2>Intelli-Credit Analyzer</h2>
-      <form onSubmit={handleSubmit}>
-        <div>
-          <label>PDF File: </label>
-          <input type="file" accept="application/pdf" onChange={handleFileChange} />
-        </div>
-        <div style={{ marginTop: 10 }}>
-          <label>Company Name: </label>
-          <input type="text" value={company} onChange={handleCompanyChange} />
-        </div>
-        <button type="submit" style={{ marginTop: 20 }} disabled={loading}>
-          {loading ? "Analyzing..." : "Analyze"}
-        </button>
-      </form>
-      {error && <div style={{ color: "red", marginTop: 20 }}>{error}</div>}
-      {result && (
-        <div style={{ marginTop: 30 }}>
-          <h3>Results</h3>
-          <pre style={{ background: "#f4f4f4", padding: 10 }}>{JSON.stringify(result, null, 2)}</pre>
-        </div>
-      )}
-    </div>
+    <Router>
+      <Routes>
+        <Route path="/" element={<Upload onAnalysisComplete={handleAnalysisComplete} />} />
+        <Route
+          path="/results"
+          element={
+            <>
+              <ResultsNavigation />
+              <FinancialData data={analysisData} />
+            </>
+          }
+        />
+        <Route
+          path="/ratios"
+          element={
+            <>
+              <ResultsNavigation />
+              <FinancialRatios data={analysisData} />
+            </>
+          }
+        />
+        <Route
+          path="/risk"
+          element={
+            <>
+              <ResultsNavigation />
+              <RiskAssessment data={analysisData} />
+            </>
+          }
+        />
+        <Route
+          path="/news"
+          element={
+            <>
+              <ResultsNavigation />
+              <NewsSentiment data={analysisData} />
+            </>
+          }
+        />
+        <Route
+          path="/cam"
+          element={
+            <>
+              <ResultsNavigation />
+              <CreditAppraisalMemo data={analysisData} />
+            </>
+          }
+        />
+      </Routes>
+    </Router>
   );
 }
 
