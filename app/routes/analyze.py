@@ -2,7 +2,7 @@
 from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 from app.services.document_parser import extract_text_from_pdf
-from app.services.llm_extractor import extract_financials
+from app.services.llm_extractor import extract_financials, generate_risk_summary
 from app.services.financial_analysis import calculate_ratios
 from app.services.news_research import get_company_news
 from app.services.risk_scoring import calculate_risk_score
@@ -22,12 +22,15 @@ def analyze_company(file_path: str, company: str):
         ratios = calculate_ratios(financials)
         news = get_company_news(company)
         risk = calculate_risk_score(ratios, news["sentiment"])
+        # Generate LLM-based risk summary
+        risk_summary = generate_risk_summary(financials, ratios, news)
         cam = generate_cam(company, financials, ratios, risk)
         return {
             "financials": financials,
             "ratios": ratios,
             "news": news,
             "risk": risk,
+            "risk_summary": risk_summary,
             "cam_report": cam
         }
     except Exception as e:

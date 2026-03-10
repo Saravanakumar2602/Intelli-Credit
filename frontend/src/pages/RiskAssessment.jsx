@@ -49,6 +49,13 @@ export default function RiskAssessment({ data }) {
         <div className="risk-level-box" style={{ borderLeftColor: getRiskColor(risk_level) }}>
           <h2 style={{ color: getRiskColor(risk_level) }}>{risk_level}</h2>
           <p className="recommendation">{getRiskRecommendation(risk_level)}</p>
+          {/* Show LLM-based risk summary if present */}
+          {data.risk_summary && (
+            <div className="risk-summary-box" style={{ marginTop: 16, background: "#f8f9fa", padding: 16, borderRadius: 8, border: "1px solid #e1e4e8" }}>
+              <h4 style={{ margin: 0, color: "#003d82" }}>AI Risk Summary</h4>
+              <p style={{ margin: 0 }}>{data.risk_summary}</p>
+            </div>
+          )}
         </div>
       </div>
 

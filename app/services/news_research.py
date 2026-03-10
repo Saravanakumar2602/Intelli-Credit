@@ -4,9 +4,7 @@ from textblob import TextBlob
 
 NEWS_API = os.getenv("NEWS_API_KEY", "")
 
-
 def get_company_news(company):
-    # If no API key configured, return neutral news signal
     if not NEWS_API:
         return {"sentiment": 0, "articles": []}
 
@@ -17,19 +15,27 @@ def get_company_news(company):
         response.raise_for_status()
         articles = response.json().get("articles", [])[:5]
     except Exception:
-        # On any network/API error, fall back to neutral
         return {"sentiment": 0, "articles": []}
 
     sentiments = []
-    for a in articles:
-        title = a.get("title") or ""
+    processed_articles = []
+    
+    for article in articles:
+        title = article.get("title") or ""
         if title:
             score = TextBlob(title).sentiment.polarity
             sentiments.append(score)
+            processed_articles.append({
+                "title": title,
+                "description": article.get("description", ""),
+                "url": article.get("url", ""),
+                "source": article.get("source", {}),
+                "publishedAt": article.get("publishedAt", "")
+            })
 
     avg_sentiment = sum(sentiments) / len(sentiments) if sentiments else 0
 
     return {
         "sentiment": avg_sentiment,
-        "articles": [a.get("title", "") for a in articles]
+        "articles": processed_articles
     }
