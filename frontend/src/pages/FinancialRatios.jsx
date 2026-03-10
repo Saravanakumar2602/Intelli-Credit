@@ -6,10 +6,30 @@ export default function FinancialRatios({ data }) {
     return <div className="page-container">No ratio data available</div>;
   }
 
+  const mainRatios = ['profit_margin', 'debt_ratio', 'leverage'];
   const ratioDescriptions = {
     profit_margin: "Percentage of revenue that becomes profit",
     debt_ratio: "Proportion of assets financed by debt",
     leverage: "Financial leverage ratio measuring debt-to-equity"
+  };
+
+  const getInterpretation = (key, value) => {
+    if (key === "profit_margin") {
+      if (value > 0.1) return "Strong profitability - Company generates healthy profits";
+      if (value > 0.05) return "Moderate profitability - Room for improvement";
+      return "Weak profitability - Focus on cost management";
+    }
+    if (key === "debt_ratio") {
+      if (value < 0.6) return "Healthy debt levels - Low financial risk";
+      if (value < 0.8) return "Moderate debt - Acceptable risk level";
+      return "High debt - Elevated financial risk";
+    }
+    if (key === "leverage") {
+      if (value < 2) return "Conservative leverage - Stable financial structure";
+      if (value < 3) return "Moderate leverage - Balanced approach";
+      return "Aggressive leverage - Higher financial risk";
+    }
+    return "";
   };
 
   return (
@@ -22,64 +42,35 @@ export default function FinancialRatios({ data }) {
         </p>
       </div>
 
-      <div className="ratios-grid-extended">
-        {Object.entries(data.ratios).map(([key, value]) => (
-          <div key={key} className="ratio-card-large">
-            <div className="ratio-header">
-              <h3>{key.replace(/_/g, " ").toUpperCase()}</h3>
-            </div>
-            
-            <div className="ratio-content">
-              <div className="ratio-value-large">{Number(value).toFixed(4)}</div>
-              <p className="ratio-description">{ratioDescriptions[key]}</p>
+      <div className="ratios-grid">
+        {mainRatios.map((key) => {
+          const value = data.ratios[key];
+          return (
+            <div key={key} className="ratio-card-large">
+              <div className="ratio-header">
+                <h3>{key.replace(/_/g, " ").toUpperCase()}</h3>
+              </div>
               
-              <div className="ratio-bar-container">
-                <div className="ratio-bar">
-                  <div
-                    className="ratio-fill"
-                    style={{ width: `${Math.min(Number(value) * 100, 100)}%` }}
-                  ></div>
+              <div className="ratio-content">
+                <div className="ratio-value-large">{Number(value).toFixed(4)}</div>
+                <p className="ratio-description">{ratioDescriptions[key]}</p>
+                
+                <div className="ratio-bar-container">
+                  <div className="ratio-bar">
+                    <div
+                      className="ratio-fill"
+                      style={{ width: `${Math.min(Number(value) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                </div>
+
+                <div className="ratio-interpretation">
+                  <span className="text">{getInterpretation(key, value)}</span>
                 </div>
               </div>
-
-              <div className="ratio-interpretation">
-                {key === "profit_margin" && (
-                  <div className={`interpretation ${Number(value) > 0.1 ? "positive" : Number(value) > 0.05 ? "neutral" : "negative"}`}>
-                    <span className="text">
-                      {Number(value) > 0.1 
-                        ? "Strong profitability - Company generates healthy profits"
-                        : Number(value) > 0.05 
-                        ? "Moderate profitability - Room for improvement"
-                        : "Weak profitability - Focus on cost management"}
-                    </span>
-                  </div>
-                )}
-                {key === "debt_ratio" && (
-                  <div className={`interpretation ${Number(value) < 0.6 ? "positive" : Number(value) < 0.8 ? "neutral" : "negative"}`}>
-                    <span className="text">
-                      {Number(value) < 0.6 
-                        ? "Healthy debt levels - Low financial risk"
-                        : Number(value) < 0.8 
-                        ? "Moderate debt - Acceptable risk level"
-                        : "High debt - Elevated financial risk"}
-                    </span>
-                  </div>
-                )}
-                {key === "leverage" && (
-                  <div className={`interpretation ${Number(value) < 2 ? "positive" : Number(value) < 3 ? "neutral" : "negative"}`}>
-                    <span className="text">
-                      {Number(value) < 2 
-                        ? "Conservative leverage - Stable financial structure"
-                        : Number(value) < 3 
-                        ? "Moderate leverage - Balanced approach"
-                        : "Aggressive leverage - Higher financial risk"}
-                    </span>
-                  </div>
-                )}
-              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="analysis-box">
@@ -90,10 +81,10 @@ export default function FinancialRatios({ data }) {
             <p>
               Profit Margin: {(data.ratios.profit_margin * 100).toFixed(2)}% - 
               {data.ratios.profit_margin > 0.1 
-                ? " Company demonstrates strong profitability and operational efficiency"
+                ? "Company demonstrates strong profitability and operational efficiency"
                 : data.ratios.profit_margin > 0.05 
-                ? " Company has moderate profitability with potential for improvement"
-                : " Company faces profitability challenges requiring attention"}
+                ? "Company has moderate profitability with potential for improvement"
+                : "Company faces profitability challenges requiring attention"}
             </p>
           </div>
           
@@ -102,10 +93,10 @@ export default function FinancialRatios({ data }) {
             <p>
               Debt Ratio: {(data.ratios.debt_ratio * 100).toFixed(2)}% - 
               {data.ratios.debt_ratio < 0.6 
-                ? " Healthy debt levels indicate low financial risk and strong balance sheet"
+                ? "Healthy debt levels indicate low financial risk and strong balance sheet"
                 : data.ratios.debt_ratio < 0.8 
-                ? " Moderate debt levels are within acceptable ranges"
-                : " High debt levels indicate elevated financial risk"}
+                ? "Moderate debt levels are within acceptable ranges"
+                : "High debt levels indicate elevated financial risk"}
             </p>
           </div>
           
@@ -114,10 +105,10 @@ export default function FinancialRatios({ data }) {
             <p>
               Leverage Ratio: {data.ratios.leverage.toFixed(4)}x - 
               {data.ratios.leverage < 2 
-                ? " Company maintains conservative leverage with stable operations"
+                ? "Company maintains conservative leverage with stable operations"
                 : data.ratios.leverage < 3 
-                ? " Company uses moderate leverage in its capital structure"
-                : " Company employs aggressive leverage increasing financial risk"}
+                ? "Company uses moderate leverage in its capital structure"
+                : "Company employs aggressive leverage increasing financial risk"}
             </p>
           </div>
         </div>
@@ -126,10 +117,10 @@ export default function FinancialRatios({ data }) {
       <div className="recommendations-box">
         <h3>Key Recommendations</h3>
         <ul>
-          <li><strong>Monitor Trends:</strong> Track these ratios over time to identify improving or deteriorating trends</li>
-          <li><strong>Industry Comparison:</strong> Compare with industry benchmarks to assess relative performance</li>
-          <li><strong>Holistic View:</strong> Consider these ratios alongside other metrics for comprehensive analysis</li>
-          <li><strong>Action Items:</strong> Based on findings, prioritize improvements in weaker areas</li>
+          <li>Monitor Trends: Track these ratios over time to identify improving or deteriorating trends</li>
+          <li>Industry Comparison: Compare with industry benchmarks to assess relative performance</li>
+          <li>Holistic View: Consider these ratios alongside other metrics for comprehensive analysis</li>
+          <li>Action Items: Based on findings, prioritize improvements in weaker areas</li>
         </ul>
       </div>
     </div>

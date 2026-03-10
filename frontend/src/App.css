@@ -1,7 +1,8 @@
 .results-nav {
-  background: var(--primary);
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
   padding: 0;
-  box-shadow: 0 2px 8px var(--shadow);
+  box-shadow: var(--shadow-sm);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -13,26 +14,27 @@
   padding: 0 32px;
   display: flex;
   align-items: center;
-  gap: 48px;
+  justify-content: space-between;
   height: 64px;
+  gap: 24px;
 }
 
 .nav-home {
   background: transparent;
-  color: var(--white);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 20px;
-  border-radius: 4px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
   font-size: 14px;
   transition: all 0.2s;
-  letter-spacing: 0.3px;
 }
 
 .nav-home:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--bg);
+  border-color: var(--primary-light);
+  color: var(--primary);
 }
 
 .nav-links {
@@ -42,42 +44,52 @@
 }
 
 .nav-link {
-  color: rgba(255, 255, 255, 0.85);
+  color: var(--text-light);
   text-decoration: none;
-  padding: 20px 24px;
+  padding: 20px 16px;
   transition: all 0.2s;
   font-weight: 500;
   font-size: 14px;
   border-bottom: 3px solid transparent;
-  letter-spacing: 0.3px;
+  position: relative;
 }
 
 .nav-link:hover {
-  color: var(--white);
-  background: rgba(255, 255, 255, 0.05);
-  border-bottom-color: rgba(255, 255, 255, 0.3);
+  color: var(--primary);
+  border-bottom-color: var(--primary-light);
 }
 
 .nav-link.active {
-  color: var(--white);
-  background: rgba(255, 255, 255, 0.1);
-  border-bottom-color: var(--accent);
+  color: var(--primary);
+  border-bottom-color: var(--primary);
 }
 
 .nav-logout {
   background: transparent;
-  color: var(--white);
-  border: 1.5px solid rgba(255, 255, 255, 0.3);
-  padding: 8px 20px;
-  border-radius: 4px;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 500;
   font-size: 14px;
   transition: all 0.2s;
-  letter-spacing: 0.3px;
 }
 
 .nav-logout:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.5);
+  background: var(--bg);
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .nav-link {
+    padding: 16px 12px;
+    font-size: 13px;
+  }
 }
