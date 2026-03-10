@@ -15,6 +15,10 @@ def analyze_company(file_path: str, company: str):
     try:
         text = extract_text_from_pdf(file_path)
         financials = extract_financials(text)
+        # Calculate equity (net worth) if assets and liabilities are present
+        assets = financials.get("total_assets", 0)
+        liabilities = financials.get("total_liabilities", 0)
+        financials["equity"] = assets - liabilities
         ratios = calculate_ratios(financials)
         news = get_company_news(company)
         risk = calculate_risk_score(ratios, news["sentiment"])
