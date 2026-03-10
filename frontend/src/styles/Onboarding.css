@@ -1,0 +1,93 @@
+/* Onboarding Page Styles - matches Results theme */
+
+.onboarding-container {
+  background: #f7f9fb;
+  max-width: 480px;
+  margin: 48px auto 0 auto;
+  padding: 40px 36px 32px 36px;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.09);
+  border: 1px solid #e3e8ee;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.onboarding-container h2 {
+  color: #003366;
+  font-size: 2.2rem;
+  margin-bottom: 32px;
+  text-align: center;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+.onboarding-container form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.step {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.step label {
+  display: flex;
+  flex-direction: column;
+  color: #003366;
+  font-weight: 500;
+  font-size: 1rem;
+  margin-bottom: 0;
+}
+.step input {
+  margin-top: 6px;
+  padding: 12px 14px;
+  border: 1.5px solid #bfc9d9;
+  border-radius: 7px;
+  font-size: 1rem;
+  background: #fff;
+  color: #003366;
+  outline: none;
+  transition: border 0.2s;
+}
+.step input:focus {
+  border-color: #003366;
+}
+.step .button-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 10px;
+}
+.step button {
+  padding: 10px 0;
+  background: #003366;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+  min-width: 100px;
+}
+.step button:hover {
+  background: #00509e;
+}
+.error-message {
+  color: #d90429;
+  background: #fff0f3;
+  border: 1px solid #ffd6e0;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-top: 8px;
+  text-align: center;
+}
+.success-message {
+  color: #218838;
+  background: #e6ffed;
+  border: 1px solid #b7f5c9;
+  border-radius: 6px;
+  padding: 10px 16px;
+  margin-top: 8px;
+  text-align: center;
+}

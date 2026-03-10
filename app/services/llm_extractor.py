@@ -41,7 +41,7 @@ def extract_financials(text):
             "model": model,
             "messages": [{"role": "user", "content": prompt}]
         }
-        response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=30)
+        response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=90)
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
         print("[DEBUG] LLM Output:\n", result)
@@ -62,19 +62,16 @@ def extract_financials(text):
                 except Exception:
                     pass
             print(f"[ERROR] Could not parse LLM output as JSON: {result}")
-            raise ValueError(f"Invalid JSON: {result}")
+            return {"error": "LLM output was not valid JSON.", "raw": result}
     except requests.Timeout:
         print("[ERROR] LLM extraction timed out.")
-        raise
-    except Exception as e:
+        return {"error": "LLM extraction timed out. Please try again later or check the LLM server."}
+    except requests.RequestException as e:
         print(f"[ERROR] LLM extraction failed: {e}")
-        return {
-            "revenue": 0,
-            "net_profit": 0,
-            "total_debt": 0,
-            "total_assets": 0,
-            "total_liabilities": 0
-        }
+        return {"error": f"LLM extraction failed: {str(e)}"}
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in LLM extraction: {e}")
+        return {"error": f"Unexpected error in LLM extraction: {str(e)}"}
 
 def generate_risk_summary(financials, ratios, news):
     """Generate risk assessment summary using LLM"""
@@ -103,7 +100,7 @@ def generate_risk_summary(financials, ratios, news):
             "model": model,
             "messages": [{"role": "user", "content": prompt}]
         }
-        response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=30)
+        response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=90)
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
         print("[DEBUG] Risk Summary:\n", result)
@@ -115,6 +112,9 @@ def generate_risk_summary(financials, ratios, news):
     except requests.Timeout:
         print("[ERROR] Risk summary generation timed out.")
         return "Risk summary generation timed out."
-    except Exception as e:
+    except requests.RequestException as e:
         print(f"[ERROR] Risk summary generation failed: {e}")
-        return "Unable to generate risk summary at this time."
+        return f"Risk summary generation failed: {str(e)}"
+    except Exception as e:
+        print(f"[ERROR] Unexpected error in risk summary generation: {e}")
+        return f"Unexpected error in risk summary generation: {str(e)}"

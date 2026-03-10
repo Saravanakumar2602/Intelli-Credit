@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Link, useNavigate, Navigate } from "react-router-dom";
 import Upload from "./pages/Upload";
+import EntityOnboarding from "./pages/EntityOnboarding";
 import FinancialData from "./pages/FinancialData";
 import FinancialRatios from "./pages/FinancialRatios";
 import RiskAssessment from "./pages/RiskAssessment";
@@ -22,9 +23,10 @@ function ResultsNavigation({ onLogout }) {
   return (
     <nav className="results-nav">
       <div className="nav-container">
-        <button className="nav-home" onClick={() => navigate("/upload")}>
+        <button className="nav-home" onClick={() => navigate("/upload")}> 
           Back to Upload
         </button>
+        <Link to="/onboarding" className="nav-link">Onboarding</Link>
         <div className="nav-links">
           {navItems.map((item) => (
             <Link key={item.path} to={item.path} className="nav-link">
@@ -67,6 +69,7 @@ function App() {
   return (
     <Router>
       <Routes>
+        <Route path="/onboarding" element={<EntityOnboarding onSubmit={(data) => {console.log('Onboarding data:', data);}} />} />
         <Route path="/login" element={<Login setAuth={setAuth} />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/" element={<Navigate to="/login" replace />} />
