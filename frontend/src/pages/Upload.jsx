@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import API_BASE_URL from "../config";
 import "../styles/Upload.css";
 
 export default function Upload({ onAnalysisComplete }) {
@@ -28,25 +29,22 @@ export default function Upload({ onAnalysisComplete }) {
 
     setLoading(true);
     try {
-      // 1. Upload the PDF
       const formData = new FormData();
       formData.append("file", file);
-      const uploadRes = await fetch("/upload/", {
+      const uploadRes = await fetch(`${API_BASE_URL}/upload/`, {
         method: "POST",
         body: formData,
       });
       if (!uploadRes.ok) throw new Error("File upload failed");
       const { file_path } = await uploadRes.json();
 
-      // 2. Call /analyze
       const analyzeRes = await fetch(
-        `/analyze/?file_path=${encodeURIComponent(file_path)}&company=${encodeURIComponent(company)}`,
+        `${API_BASE_URL}/analyze/?file_path=${encodeURIComponent(file_path)}&company=${encodeURIComponent(company)}`,
         { method: "POST" }
       );
       if (!analyzeRes.ok) throw new Error("Analysis failed");
       const data = await analyzeRes.json();
 
-      // Pass data to parent and navigate
       onAnalysisComplete(data);
       navigate("/results");
     } catch (err) {

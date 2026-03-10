@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-from app.routes import upload, analyze
+from app.routes import upload, analyze, auth
 
 app = FastAPI(
     title="Intelli-Credit API",
@@ -23,13 +23,13 @@ app.add_middleware(
 
 app.include_router(upload.router)
 app.include_router(analyze.router)
+app.include_router(auth.router)
 
 # Download CAM report endpoint
 @app.get("/download/")
-def download_file(file_path: str):
+async def download_file(file_path: str):
     """Download a generated report file"""
     try:
-        # Ensure file_path is safe (prevent directory traversal)
         if ".." in file_path or file_path.startswith("/"):
             return {"error": "Invalid file path"}
         
@@ -40,7 +40,6 @@ def download_file(file_path: str):
         
         filename = os.path.basename(full_path)
         
-        # Determine MIME type based on file extension
         if file_path.endswith('.pdf'):
             media_type = "application/pdf"
         elif file_path.endswith('.docx'):
@@ -49,10 +48,9 @@ def download_file(file_path: str):
             media_type = "application/octet-stream"
         
         return FileResponse(
-            full_path, 
-            media_type=media_type, 
-            filename=filename,
-            headers={"Content-Disposition": f"attachment; filename={filename}"}
+            path=full_path,
+            media_type=media_type,
+            filename=filename
         )
     except Exception as e:
         return {"error": str(e)}

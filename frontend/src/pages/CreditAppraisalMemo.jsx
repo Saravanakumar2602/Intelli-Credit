@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import API_BASE_URL from "../config";
 import "../styles/Results.css";
 
 export default function CreditAppraisalMemo({ data }) {
@@ -11,8 +12,7 @@ export default function CreditAppraisalMemo({ data }) {
   const handleDownloadCAM = async () => {
     setDownloading(true);
     try {
-      const response = await fetch(`/download/?file_path=${encodeURIComponent(data.cam_report)}`);
-      if (!response.ok) throw new Error("Download failed");
+      const response = await fetch(`${API_BASE_URL}/download/?file_path=${encodeURIComponent(data.cam_report)}`);
 
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
