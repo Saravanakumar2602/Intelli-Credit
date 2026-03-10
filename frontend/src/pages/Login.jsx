@@ -89,9 +89,6 @@ export default function Login({ setAuth }) {
         </form>
 
         <div className="login-footer">
-          <p>Demo Credentials:</p>
-          <p className="demo-text">Email: demo@bank.com</p>
-          <p className="demo-text">Password: demo123</p>
           <button
             type="button"
             onClick={() => navigate("/signup")}
