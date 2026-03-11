@@ -117,6 +117,7 @@ def generate_cam(company, financials, ratios, risk):
         leverage = ratios.get("leverage", 0)
         debt_ratio = ratios.get("debt_ratio", 0)
         risk_score = risk.get("score", 100)
+        
         # Financial health score (simple version)
         financial_score = 0
         if revenue > 0:
@@ -136,15 +137,19 @@ def generate_cam(company, financials, ratios, risk):
         if profit > 0:
             financial_score += 10
 
-        # Decision logic
-        # (financial × 40%) + ((100-risk) × 40%) + (100 × 20%)
-        final_score = (financial_score * 0.4) + ((100 - risk_score) * 0.4) + (100 * 0.2)
+        # Decision logic - NOTE: risk_score is INVERTED (higher = lower risk)
+        # score > 70 means LOW RISK (don't reject based on high risk_score)
+        # Decision: APPROVE if good financial health AND low risk (high score) AND data valid
+        lower_is_better_risk = 100 - risk_score  # Convert to lower-is-better for thresholds
+        
+        final_score = (financial_score * 0.4) + ((100 - lower_is_better_risk) * 0.4) + (100 * 0.2)
 
-        if revenue <= 0 or profit <= 0 or risk_score >= 70 or financial_score < 40:
-            recommendation = "<b>REJECTED</b> - Multiple risk factors and/or poor financials. Recommend declining or escalating for senior review."
-        elif final_score >= 75 and risk_score <= 40:
-            recommendation = "<b>APPROVED</b> - Company demonstrates strong financial health and low risk profile."
-        elif final_score >= 60 and risk_score <= 60:
+        # Corrected decision logic matching recommendation_engine
+        if revenue <= 0 or profit <= 0:
+            recommendation = "<b>REJECTED</b> - No revenue or profit reported. Recommend declining or escalating for senior review."
+        elif final_score >= 75 and lower_is_better_risk <= 30:
+            recommendation = "<b>APPROVED</b> - Company demonstrates strong financial health, low risk profile, and positive market positioning."
+        elif final_score >= 60 and lower_is_better_risk <= 50:
             recommendation = "<b>CONDITIONAL APPROVAL</b> - Further detailed review or conditions required before final decision."
         else:
             recommendation = "<b>REJECTED</b> - Multiple risk factors and/or poor financials. Recommend declining or escalating for senior review."
