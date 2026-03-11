@@ -4,44 +4,59 @@ import requests
 import re
 
 def extract_financials(text):
-    """Extract financial data from text using Ollama"""
-    # Limit the text sent to the LLM to avoid timeouts and memory issues
-    limited_text = text[:2000]
+    """Extract financial data from text using Ollama with enhanced extraction logic"""
+    print(f"[DEBUG] PDF TEXT LENGTH: {len(text)}")
+    print(f"[DEBUG] FIRST 1000 CHARS:\n{text[:1000]}")
+    
+    # First try regex extraction for common patterns
+    extracted = _regex_extract_financials(text)
+    print(f"[DEBUG] Regex extraction result: {extracted}")
+    
+    if extracted and any(extracted.values()):
+        print("[DEBUG] ✓ Successfully extracted via regex patterns")
+        return extracted
+    
+    # If regex fails (all zeros), use LLM
+    print("[DEBUG] ⚠ Regex extraction all zeros, falling back to LLM")
+    limited_text = text[:4000]  # Increased limit for better context
     print("[DEBUG] Extracted PDF text (first 500 chars):\n", limited_text[:500])
     print(f"[DEBUG] Total extracted text length: {len(text)} (sending {len(limited_text)} chars to LLM)")
     model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
     print(f"[DEBUG] Using Ollama model: {model}")
-    prompt = f"""
-    You are a financial analyst AI. Extract the following financial values as NUMBERS ONLY from the provided document text:
-    - revenue
-    - net_profit
-    - total_debt
-    - total_assets
-    - total_liabilities
+    
+    prompt = f"""You are a financial extraction expert. Extract EXACT numerical values from this document.
 
-    INSTRUCTIONS:
-    - Search for numbers in all possible formats (digits, words, with or without commas, currency symbols, etc.).
-    - If a value is missing, unclear, or not found, set it to 0.
-    - Output ONLY a valid JSON object, with NO explanation, NO markdown, NO extra text.
-    - All values must be numbers (no strings, no commas, no currency symbols in the output).
-    - Do NOT output anything except the JSON object.
+FIND AND EXTRACT:
+1. REVENUE - Look for: "Revenue from Operations", "Total Revenue", "Sales", "Net Sales"
+2. NET PROFIT - Look for: "Net Profit", "Net Income", "Bottom Line", "PAT"
+3. TOTAL DEBT - Look for: "Total Debt", "Total Borrowing", "Total Outstanding Debt"
+4. TOTAL ASSETS - Look for: "Total Assets", "TOTAL ASSETS"
+5. TOTAL LIABILITIES - Look for: "Total Liabilities", "TOTAL LIABILITIES"
+6. CURRENT ASSETS - Look for: "Current Assets"
+7. CURRENT LIABILITIES - Look for: "Current Liabilities"
 
-    EXAMPLES:
-    If all values are found:
-    {{"revenue": 1234567, "net_profit": 89012, "total_debt": 34567, "total_assets": 456789, "total_liabilities": 12345}}
-    If some values are missing:
-    {{"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 456789, "total_liabilities": 0}}
+CRITICAL RULES:
+- Extract numbers exactly as they appear in the document
+- Numbers may be in Lakhs (L), Crores (C), or thousands
+- Numbers may have commas or spaces as separators
+- Multiply by 1 if in base units, by 100000 if in Lakhs, by 10000000 if in Crores
+- ALWAYS output valid JSON with 7 keys: revenue, net_profit, total_debt, total_assets, total_liabilities, current_assets, current_liabilities
+- ALL values MUST be numbers (integers), no strings or text
+- If you cannot find a value, set it to 0
+- Output NOTHING except the JSON object
 
-    WARNING: If you output anything except the JSON object, your answer will be rejected.
+DOCUMENT TEXT:
+{limited_text}
 
-    Document:
-    {limited_text}
-    """
+RESPOND WITH ONLY THIS JSON FORMAT:
+{{"revenue": NUMBER, "net_profit": NUMBER, "total_debt": NUMBER, "total_assets": NUMBER, "total_liabilities": NUMBER, "current_assets": NUMBER, "current_liabilities": NUMBER}}
+"""
     
     try:
         data = {
             "model": model,
-            "messages": [{"role": "user", "content": prompt}]
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.1  # Low temperature for consistent extraction
         }
         response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=90)
         response.raise_for_status()
@@ -51,29 +66,111 @@ def extract_financials(text):
         # Clean up common LLM output issues
         result = result.strip()
         # Remove markdown code block if present
-        if result.startswith("```json"):
-            result = result.lstrip("`json").strip('`\n ')
+        if result.startswith("```"):
+            result = re.sub(r'^```[a-z]*\n?', '', result)
+            result = re.sub(r'\n?```$', '', result)
+        
         # Try to parse JSON
         try:
-            return json.loads(result)
-        except Exception:
-            match = re.search(r'\{.*\}', result, re.DOTALL)
+            parsed = json.loads(result)
+            # Ensure all values are integers
+            for key in ["revenue", "net_profit", "total_debt", "total_assets", "total_liabilities", "current_assets", "current_liabilities"]:
+                if key in parsed:
+                    parsed[key] = int(float(str(parsed[key]).replace(",", "")))
+                else:
+                    parsed[key] = 0
+            return parsed
+        except Exception as e:
+            # Try to find JSON in the result
+            match = re.search(r'\{[^{}]*"revenue"[^{}]*\}', result, re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group(0))
+                    parsed = json.loads(match.group(0))
+                    for key in ["revenue", "net_profit", "total_debt", "total_assets", "total_liabilities", "current_assets", "current_liabilities"]:
+                        if key in parsed:
+                            parsed[key] = int(float(str(parsed[key]).replace(",", "")))
+                        else:
+                            parsed[key] = 0
+                    return parsed
                 except Exception:
                     pass
+            
             print(f"[ERROR] Could not parse LLM output as JSON: {result}")
-            return {"error": "LLM output was not valid JSON.", "raw": result}
+            # Return zeros instead of error
+            return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
     except requests.Timeout:
         print("[ERROR] LLM extraction timed out.")
-        return {"error": "LLM extraction timed out. Please try again later or check the LLM server."}
+        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
     except requests.RequestException as e:
         print(f"[ERROR] LLM extraction failed: {e}")
-        return {"error": f"LLM extraction failed: {str(e)}"}
+        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
     except Exception as e:
         print(f"[ERROR] Unexpected error in LLM extraction: {e}")
-        return {"error": f"Unexpected error in LLM extraction: {str(e)}"}
+        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
+
+def _regex_extract_financials(text):
+    """Extract financials using regex patterns for common formats"""
+    extracted = {
+        "revenue": 0, 
+        "net_profit": 0, 
+        "total_debt": 0, 
+        "total_assets": 0, 
+        "total_liabilities": 0,
+        "current_assets": 0,
+        "current_liabilities": 0
+    }
+    
+    # Pattern to find financial values (handles formats like "15,000" or "15000" followed by optional "Lakhs" or "L")
+    patterns = {
+        "revenue": [
+            r"(?:Revenue from Operations|Revenue|Total Revenue|Net Sales|Sales)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"Revenue\s*:\s*([\d,]+)",
+            r"REVENUE\s+([\d,]+)"
+        ],
+        "net_profit": [
+            r"NET PROFIT FOR THE YEAR\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"(?:Net Income|Bottom Line|PAT)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"NET PROFIT\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"Net Profit\s*:\s*([\d,]+)"
+        ],
+        "total_debt": [
+            r"(?:Total Debt|Total Outstanding Debt|Total Borrowing)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"TOTAL.*DEBT\s+([\d,]+)",
+            r"Total Debt\s*:\s*([\d,]+)"
+        ],
+        "total_assets": [
+            r"(?:TOTAL ASSETS|Total Assets)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"TOTAL ASSETS\s+([\d,]+)",
+            r"Total Assets\s*:\s*([\d,]+)"
+        ],
+        "total_liabilities": [
+            r"(?:TOTAL LIABILITIES|Total Liabilities)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"TOTAL LIABILITIES\s+([\d,]+)",
+            r"Total Liabilities\s*:\s*([\d,]+)"
+        ],
+        "current_assets": [
+            r"(?:CURRENT ASSETS|Current Assets)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"Current Assets\s*:\s*([\d,]+)"
+        ],
+        "current_liabilities": [
+            r"(?:CURRENT LIABILITIES|Current Liabilities)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
+            r"Current Liabilities\s*:\s*([\d,]+)"
+        ]
+    }
+    
+    for key, pattern_list in patterns.items():
+        for pattern in pattern_list:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                try:
+                    value = match.group(1).replace(",", "").replace(" ", "")
+                    extracted[key] = int(float(value))
+                    print(f"[DEBUG] Regex found {key}: {extracted[key]}")
+                    break
+                except (ValueError, AttributeError):
+                    continue
+    
+    return extracted
 
 def generate_risk_summary(financials, ratios, news):
     """Generate risk assessment summary using LLM"""

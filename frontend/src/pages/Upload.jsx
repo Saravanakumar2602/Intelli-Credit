@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import API_BASE_URL from "../config";
 import "../styles/Upload.css";
 
-export default function Upload({ onAnalysisComplete, onUploadComplete }) {
+export default function Upload({ onUploadComplete }) {
   const [company, setCompany] = useState("");
   const [files, setFiles] = useState({
     alm: null,
@@ -14,7 +13,6 @@ export default function Upload({ onAnalysisComplete, onUploadComplete }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
 
   const documentTypes = [
     { key: "alm", label: "ALM" },

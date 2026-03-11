@@ -10,3 +10,4 @@ openai
 python-docx
 beautifulsoup4
 textblob
+python-dotenv

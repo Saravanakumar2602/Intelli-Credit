@@ -5,6 +5,8 @@ def calculate_ratios(financials):
     assets = financials.get("total_assets", 0) or 0
     liabilities = financials.get("total_liabilities", 0) or 0
     equity = financials.get("equity", 0) or 0
+    current_assets = financials.get("current_assets", 0) or 0
+    current_liabilities = financials.get("current_liabilities", 0) or 0
     
     ratios = {}
     
@@ -34,5 +36,10 @@ def calculate_ratios(financials):
         ratios["roa"] = profit / assets
     else:
         ratios["roa"] = 0
+    
+    if current_liabilities > 0:
+        ratios["current_ratio"] = current_assets / current_liabilities
+    else:
+        ratios["current_ratio"] = 0
     
     return ratios

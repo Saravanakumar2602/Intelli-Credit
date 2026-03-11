@@ -17,6 +17,7 @@ import "./App.css";
 
 function ResultsNavigation({ onLogout }) {
   const navigate = useNavigate();
+  const location = window.location.pathname;
   const navItems = [
     { path: "/results", label: "Financial Data" },
     { path: "/ratios", label: "Financial Ratios" },
@@ -28,26 +29,26 @@ function ResultsNavigation({ onLogout }) {
     { path: "/cam", label: "Credit Memo" },
   ];
   return (
-    <nav className="results-nav">
-      <div className="nav-container">
-        <button className="nav-home" onClick={() => navigate("/upload")}> 
-          Back to Upload
-        </button>
-        <Link to="/onboarding" className="nav-link">Onboarding</Link>
-        <div className="nav-links">
+    <nav className="results-nav pill-navbar">
+      <div className="nav-pill-container">
+        <div className="nav-logo" onClick={() => navigate("/upload")}>Intelli<span style={{color:'#003d82', fontWeight:700}}>Credit</span></div>
+        <div className="nav-links-centered">
           {navItems.map((item) => (
-            <Link key={item.path} to={item.path} className="nav-link">
+            <Link key={item.path} to={item.path} className={`nav-link${location === item.path ? " active" : ""}`}>
               {item.label}
             </Link>
           ))}
         </div>
-        <button className="nav-logout" onClick={onLogout} style={{marginLeft: 24}}>
-          Logout
-        </button>
+        <div className="nav-actions">
+          <Link to="/onboarding" className={`nav-link${location === "/onboarding" ? " active" : ""}`}>Onboarding</Link>
+          <button className="nav-logout" onClick={onLogout}>Logout</button>
+        </div>
       </div>
     </nav>
   );
 }
+
+const Protected = ({ children, auth }) => (auth ? children : <Navigate to="/login" replace />);
 
 function RoutesWrapper({
   analysisData,
@@ -61,17 +62,11 @@ function RoutesWrapper({
   const navigate = useNavigate();
   const [uploadState, setUploadState] = React.useState({ files: [], company: "", filePaths: null });
 
-  const handleAnalysisComplete = (data) => {
-    setAnalysisData(data);
-  };
-
   const handleUploadComplete = (files, company, filePaths) => {
     setUploadState({ files, company, filePaths });
     setUploadedFiles(files);
     navigate("/classify");
   };
-
-  const Protected = ({ children }) => (auth ? children : <Navigate to="/login" replace />);
 
   return (
     <Routes>
@@ -82,9 +77,8 @@ function RoutesWrapper({
       <Route
         path="/upload"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <Upload
-              onAnalysisComplete={handleAnalysisComplete}
               onUploadComplete={handleUploadComplete}
             />
           </Protected>
@@ -93,7 +87,7 @@ function RoutesWrapper({
       <Route
         path="/classify"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <FileClassification
               files={uploadedFiles}
               company={uploadState.company}
@@ -109,7 +103,7 @@ function RoutesWrapper({
       <Route
         path="/results"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <FinancialData data={analysisData} />
           </Protected>
@@ -118,7 +112,7 @@ function RoutesWrapper({
       <Route
         path="/ratios"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <FinancialRatios data={analysisData} />
           </Protected>
@@ -127,7 +121,7 @@ function RoutesWrapper({
       <Route
         path="/risk"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <RiskAssessment data={analysisData} />
           </Protected>
@@ -136,7 +130,7 @@ function RoutesWrapper({
       <Route
         path="/news"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <NewsSentiment data={analysisData} />
           </Protected>
@@ -145,7 +139,7 @@ function RoutesWrapper({
       <Route
         path="/cam"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <CreditAppraisalMemo data={analysisData} />
           </Protected>
@@ -154,7 +148,7 @@ function RoutesWrapper({
       <Route
         path="/secondary"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <SecondaryResearch data={analysisData} />
           </Protected>
@@ -163,7 +157,7 @@ function RoutesWrapper({
       <Route
         path="/swot"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <SWOTAnalysis data={analysisData} />
           </Protected>
@@ -172,7 +166,7 @@ function RoutesWrapper({
       <Route
         path="/recommendation"
         element={
-          <Protected>
+          <Protected auth={auth}>
             <ResultsNavigation onLogout={handleLogout} />
             <Recommendation data={analysisData} />
           </Protected>
@@ -189,7 +183,10 @@ function App() {
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) setAuth(true);
+    if (token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setAuth(true);
+    }
   }, []);
 
   const handleLogout = () => {

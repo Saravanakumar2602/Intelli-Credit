@@ -24,11 +24,44 @@ def analyze_company(file_path: str, company: str):
         except:
             file_paths = {"primary": file_path}
         
-        primary_file = file_paths.get("primary") or file_paths.get("annual_reports") or list(file_paths.values())[0]
+        print(f"[ANALYZE] Received file_paths: {file_paths}")
+        print(f"[ANALYZE] Company: {company}")
         
-        # 1. Extract financial data from documents
-        text = extract_text_from_pdf(primary_file)
-        financials = extract_financials(text)
+        # 1. Extract financial data from ALL documents
+        # Combine text from all uploaded PDFs
+        all_text = ""
+        processed_files = []
+        
+        # Try to process files in logical order (annual report first for financial data)
+        file_priority_order = ["annual", "annual_reports", "alm", "shareholding", "borrowing", "portfolio"]
+        
+        for priority_key in file_priority_order:
+            if priority_key in file_paths:
+                file_path_item = file_paths[priority_key]
+                try:
+                    text = extract_text_from_pdf(file_path_item)
+                    all_text += text + "\n\n"
+                    processed_files.append(priority_key)
+                    print(f"[ANALYZE] ✓ Processed {priority_key}: {len(text)} chars")
+                except Exception as e:
+                    print(f"[ANALYZE] ✗ Error processing {priority_key}: {e}")
+        
+        # Also process any remaining files not in priority order
+        for key, file_path_item in file_paths.items():
+            if key not in processed_files:
+                try:
+                    text = extract_text_from_pdf(file_path_item)
+                    all_text += text + "\n\n"
+                    processed_files.append(key)
+                    print(f"[ANALYZE] ✓ Processed {key}: {len(text)} chars")
+                except Exception as e:
+                    print(f"[ANALYZE] ✗ Error processing {key}: {e}")
+        
+        print(f"[ANALYZE] Total combined text length: {len(all_text)} chars")
+        print(f"[ANALYZE] Processed files: {processed_files}")
+        
+        # Extract financials from combined text
+        financials = extract_financials(all_text)
         
         assets = financials.get("total_assets", 0)
         liabilities = financials.get("total_liabilities", 0)

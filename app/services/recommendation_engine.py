@@ -84,8 +84,12 @@ def generate_recommendation(company, financials, ratios, risk_score, secondary_r
     }
     
     # 2. Risk Assessment
-    risk_label = risk_score.get("label", "unknown").upper()
+    risk_label = risk_score.get("risk_level", risk_score.get("label", "unknown")).upper()
     risk_value = risk_score.get("score", 50)
+    
+    # Note: Higher score = Lower risk (score > 70 = Low Risk, score < 40 = High Risk)
+    # For decision logic, invert it: lower_risk_value = 100 - risk_value
+    lower_is_better_risk = 100 - risk_value  # Now higher numbers mean higher risk
     
     recommendation["reasoning"]["risk"] = {
         "score": risk_value,
@@ -93,9 +97,9 @@ def generate_recommendation(company, financials, ratios, risk_score, secondary_r
         "assessment": f"Risk Score: {risk_value}/100 ({risk_label})"
     }
     
-    if risk_value > 70:
+    if lower_is_better_risk > 30:  # risk > 30 means high risk
         recommendation["risk_factors"].append("High overall risk profile")
-    elif risk_value > 50:
+    elif lower_is_better_risk > 15:  # risk > 15 means medium risk
         recommendation["risk_factors"].append("Moderate risk profile")
     else:
         recommendation["positive_factors"].append("Low risk profile")
@@ -151,7 +155,11 @@ def generate_recommendation(company, financials, ratios, risk_score, secondary_r
                 recommendation["risk_factors"].append(f"Weakness: {weakness.get('point')}")
     
     # 6. Final Decision Logic
-    total_score = (financial_score * 0.4) + (100 - risk_value) * 0.4 + (confidence_score * 0.2)
+    # Score components:
+    # - financial_score: 0-100 (higher is better)
+    # - lower_is_better_risk: 0-100 (lower is better, so invert for weighting)
+    # - confidence_score: 0-100 (higher is better)
+    total_score = (financial_score * 0.4) + ((100 - lower_is_better_risk) * 0.4) + (confidence_score * 0.2)
     
     # Adjust for secondary research
     if secondary_sentiment < -0.3:
@@ -166,7 +174,8 @@ def generate_recommendation(company, financials, ratios, risk_score, secondary_r
     recommendation["confidence"] = total_score
     
     # Decision making
-    if total_score >= 75 and risk_value <= 40 and validation_status != "fail":
+    # Approve if: good financial score AND low risk (inverted) AND data is valid
+    if total_score >= 75 and lower_is_better_risk <= 30 and validation_status != "fail":
         recommendation["decision"] = "APPROVE"
         recommendation["recommendation_summary"] = (
             f"Strong recommendation to APPROVE loan. "
@@ -174,14 +183,14 @@ def generate_recommendation(company, financials, ratios, risk_score, secondary_r
             f"acceptable risk profile, and positive market positioning."
         )
     
-    elif total_score >= 60 and risk_value <= 60 and validation_status != "fail":
+    elif total_score >= 60 and lower_is_better_risk <= 50 and validation_status != "fail":
         recommendation["decision"] = "CONDITIONAL_APPROVE"
         recommendation["recommendation_summary"] = (
             f"Recommend CONDITIONAL APPROVAL. {company} shows potential but "
             f"requires additional conditions or ongoing monitoring."
         )
         
-        if risk_value > 50:
+        if lower_is_better_risk > 30:
             recommendation["conditions"].append("Enhanced monitoring of risk indicators")
         if financial_score < 50:
             recommendation["conditions"].append("Quarterly financial reporting requirement")
