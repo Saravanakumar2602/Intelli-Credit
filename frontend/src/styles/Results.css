@@ -1,15 +1,15 @@
 .page-container {
   width: 100%;
-  min-height: calc(100vh - 64px);
+  min-height: calc(100vh - 70px);
   background: var(--bg);
-  padding: 40px 32px;
+  padding: var(--spacing-2xl) var(--spacing-xl);
 }
 
 .page-container h1 {
   color: var(--dark);
   font-size: 28px;
   font-weight: 700;
-  margin: 0 0 32px 0;
+  margin: 0 0 var(--spacing-2xl) 0;
   letter-spacing: -0.3px;
 }
 
@@ -17,14 +17,14 @@
   color: var(--dark);
   font-size: 20px;
   font-weight: 600;
-  margin: 32px 0 16px 0;
+  margin: var(--spacing-2xl) 0 var(--spacing-lg) 0;
 }
 
 .page-container h3 {
   color: var(--text);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  margin: 20px 0 12px 0;
+  margin: var(--spacing-lg) 0 var(--spacing-md) 0;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
@@ -32,9 +32,9 @@
 .data-card {
   background: var(--white);
   border-radius: 12px;
-  padding: 32px;
+  padding: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
@@ -53,7 +53,7 @@
 }
 
 .data-table th {
-  padding: 14px 16px;
+  padding: var(--spacing-md);
   text-align: left;
   font-weight: 600;
   font-size: 12px;
@@ -63,7 +63,7 @@
 }
 
 .data-table td {
-  padding: 14px 16px;
+  padding: var(--spacing-md);
   border-bottom: 1px solid var(--border);
   color: var(--text);
 }
@@ -74,15 +74,15 @@
 
 .data-table .currency {
   font-weight: 600;
-  color: var(--primary);
+  color: var(--accent);
   font-family: 'Courier New', monospace;
 }
 
 .ratios-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
@@ -91,10 +91,10 @@
 .ratio-card-large {
   background: var(--white);
   border-radius: 12px;
-  padding: 28px;
+  padding: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid var(--accent);
   transition: all 0.2s;
   display: flex;
   flex-direction: column;
@@ -107,8 +107,8 @@
 }
 
 .ratio-header {
-  margin-bottom: 20px;
-  padding-bottom: 16px;
+  margin-bottom: var(--spacing-lg);
+  padding-bottom: var(--spacing-md);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
@@ -116,15 +116,15 @@
 .ratio-header h3 {
   margin: 0;
   color: var(--text);
-  font-size: 13px;
+  font-size: 12px;
 }
 
 .ratio-value-large {
   font-size: 40px;
   font-weight: 700;
-  color: var(--primary);
+  color: var(--accent);
   font-family: 'Courier New', monospace;
-  margin: 16px 0;
+  margin: var(--spacing-lg) 0;
   letter-spacing: -1px;
 }
 
@@ -132,7 +132,7 @@
   color: var(--text-light);
   font-size: 13px;
   line-height: 1.6;
-  margin-bottom: 16px;
+  margin-bottom: var(--spacing-md);
 }
 
 .ratio-bar {
@@ -140,22 +140,22 @@
   background: var(--bg);
   border-radius: 4px;
   overflow: hidden;
-  margin: 12px 0;
+  margin: var(--spacing-md) 0;
   border: 1px solid var(--border);
 }
 
 .ratio-fill {
   height: 100%;
-  background: var(--primary);
+  background: var(--accent);
   transition: width 0.6s ease;
 }
 
 .ratio-interpretation {
   background: var(--bg);
-  padding: 14px;
+  padding: var(--spacing-md);
   border-radius: 8px;
-  margin-top: 16px;
-  border-left: 3px solid var(--primary);
+  margin-top: var(--spacing-md);
+  border-left: 3px solid var(--accent);
   font-size: 13px;
   color: var(--text);
   line-height: 1.6;
@@ -180,8 +180,8 @@
 .risk-container {
   display: grid;
   grid-template-columns: 1fr 2fr;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
   max-width: 1200px;
   margin-left: auto;
   margin-right: auto;
@@ -197,7 +197,7 @@
   width: 200px;
   height: 200px;
   border-radius: 50%;
-  border: 8px solid var(--primary);
+  border: 8px solid var(--accent);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -225,8 +225,8 @@
 .risk-level-box {
   background: var(--white);
   border-radius: 12px;
-  padding: 28px;
-  border-left: 4px solid var(--primary);
+  padding: var(--spacing-xl);
+  border-left: 4px solid var(--accent);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   display: flex;
@@ -235,7 +235,7 @@
 }
 
 .risk-level-box h2 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 20px;
 }
 
@@ -250,9 +250,9 @@
 .decision-box,
 .summary-box {
   max-width: 1200px;
-  margin: 24px auto;
+  margin: var(--spacing-lg) auto;
   background: var(--white);
-  padding: 28px;
+  padding: var(--spacing-xl);
   border-radius: 12px;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
@@ -269,7 +269,7 @@
 .risk-factors li,
 .analysis-box li,
 .summary-box li {
-  padding: 12px 0;
+  padding: var(--spacing-md) 0;
   color: var(--text);
   border-bottom: 1px solid var(--border);
   font-size: 14px;
@@ -284,7 +284,7 @@
 
 .sentiment-summary {
   max-width: 1200px;
-  margin: 32px auto;
+  margin: var(--spacing-2xl) auto;
   display: flex;
   justify-content: center;
 }
@@ -292,16 +292,16 @@
 .sentiment-card {
   background: var(--white);
   border-radius: 12px;
-  padding: 40px;
+  padding: var(--spacing-2xl);
   border: 1px solid var(--border);
   box-shadow: var(--shadow-sm);
   text-align: center;
   min-width: 320px;
-  border-top: 4px solid var(--primary);
+  border-top: 4px solid var(--accent);
 }
 
 .sentiment-card h2 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   font-size: 24px;
   font-weight: 700;
 }
@@ -309,28 +309,28 @@
 .sentiment-score {
   font-size: 36px;
   font-weight: 700;
-  color: var(--primary);
-  margin: 16px 0;
+  color: var(--accent);
+  margin: var(--spacing-lg) 0;
   font-family: 'Courier New', monospace;
 }
 
 .articles-section {
   max-width: 1200px;
-  margin: 32px auto;
+  margin: var(--spacing-2xl) auto;
 }
 
 .articles-list {
   display: grid;
-  gap: 20px;
+  gap: var(--spacing-lg);
 }
 
 .article-card {
   background: var(--white);
   border-radius: 12px;
-  padding: 24px;
+  padding: var(--spacing-lg);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
-  border-left: 4px solid var(--primary);
+  border-left: 4px solid var(--accent);
   transition: all 0.2s;
 }
 
@@ -340,7 +340,7 @@
 }
 
 .article-card h4 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   color: var(--dark);
   font-size: 16px;
   font-weight: 600;
@@ -348,7 +348,7 @@
 }
 
 .article-card p {
-  margin: 0 0 16px 0;
+  margin: 0 0 var(--spacing-md) 0;
   color: var(--text);
   font-size: 13px;
   line-height: 1.6;
@@ -356,17 +356,17 @@
 
 .article-meta {
   display: flex;
-  gap: 16px;
+  gap: var(--spacing-lg);
   font-size: 12px;
   color: var(--text-light);
-  margin-bottom: 12px;
+  margin-bottom: var(--spacing-md);
   text-transform: uppercase;
   letter-spacing: 0.5px;
   font-weight: 500;
 }
 
 .read-more {
-  color: var(--primary);
+  color: var(--accent);
   text-decoration: none;
   font-weight: 600;
   font-size: 13px;
@@ -374,31 +374,31 @@
 }
 
 .read-more:hover {
-  color: var(--primary-light);
+  color: var(--accent-light);
 }
 
 .cam-container {
   max-width: 1200px;
-  margin: 32px auto;
+  margin: var(--spacing-2xl) auto;
 }
 
 .cam-info {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 24px;
-  margin-bottom: 32px;
+  gap: var(--spacing-lg);
+  margin-bottom: var(--spacing-2xl);
 }
 
 .info-box {
   background: var(--white);
   border-radius: 12px;
-  padding: 28px;
+  padding: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
 }
 
 .info-box h3 {
-  margin: 0 0 20px 0;
+  margin: 0 0 var(--spacing-lg) 0;
   color: var(--text);
   font-weight: 600;
 }
@@ -433,15 +433,15 @@
 }
 
 .download-box {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #2563eb 100%);
   color: var(--white);
   border-radius: 12px;
-  padding: 28px;
+  padding: var(--spacing-xl);
   box-shadow: var(--shadow-md);
 }
 
 .download-box h3 {
-  margin: 0 0 12px 0;
+  margin: 0 0 var(--spacing-md) 0;
   color: var(--white);
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -449,7 +449,7 @@
 }
 
 .download-box p {
-  margin: 0 0 20px 0;
+  margin: 0 0 var(--spacing-lg) 0;
   color: rgba(255, 255, 255, 0.9);
   line-height: 1.6;
   font-size: 13px;
@@ -458,7 +458,7 @@
 .download-btn {
   padding: 12px 20px;
   background: var(--white);
-  color: var(--primary);
+  color: var(--accent);
   border: none;
   border-radius: 8px;
   font-weight: 600;
@@ -483,9 +483,9 @@
 .cam-usage {
   background: var(--white);
   border-radius: 12px;
-  padding: 28px;
+  padding: var(--spacing-xl);
   box-shadow: var(--shadow-sm);
-  margin-bottom: 24px;
+  margin-bottom: var(--spacing-lg);
   border: 1px solid var(--border);
 }
 
@@ -511,7 +511,7 @@
   background: #fffbeb;
   border-left: 4px solid var(--warning);
   border-radius: 8px;
-  padding: 20px;
+  padding: var(--spacing-lg);
   color: var(--text);
   border: 1px solid var(--border);
   border-left: 4px solid var(--warning);
@@ -523,6 +523,84 @@
   margin: 0;
 }
 
+.assessment-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--spacing-lg);
+  margin: var(--spacing-lg) 0;
+  padding: var(--spacing-lg) 0;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.assessment-item {
+  background: var(--bg);
+  padding: var(--spacing-lg);
+  border-radius: 8px;
+  border-left: 3px solid var(--accent);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+}
+
+.assessment-item h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.assessment-item p {
+  margin: 0;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.recommendations-box {
+  background: #f0fdf4;
+  border-left: 4px solid var(--success);
+  border-radius: 8px;
+  padding: var(--spacing-lg);
+  margin-top: var(--spacing-lg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--success);
+}
+
+.recommendations-box h4 {
+  margin: 0 0 var(--spacing-md) 0;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.recommendations-box ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.recommendations-box li {
+  padding: 10px 0;
+  padding-left: 28px;
+  color: var(--text);
+  font-size: 13px;
+  line-height: 1.6;
+  position: relative;
+}
+
+.recommendations-box li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--success);
+  font-weight: bold;
+  font-size: 16px;
+}
+
 @media (max-width: 768px) {
   .risk-container,
   .cam-info {
@@ -530,12 +608,12 @@
   }
 
   .page-container {
-    padding: 24px 16px;
+    padding: var(--spacing-lg);
   }
 
   .data-card,
   .ratio-card-large {
-    padding: 20px;
+    padding: var(--spacing-lg);
   }
 
   .ratios-grid {

@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
 
-from app.routes import upload, analyze, auth, onboarding
+from app.routes import upload, analyze, auth
 
 app = FastAPI(
     title="Intelli-Credit API",
@@ -24,7 +24,6 @@ app.add_middleware(
 app.include_router(upload.router)
 app.include_router(analyze.router)
 app.include_router(auth.router)
-app.include_router(onboarding.router)
 
 # Download CAM report endpoint
 @app.get("/download/")

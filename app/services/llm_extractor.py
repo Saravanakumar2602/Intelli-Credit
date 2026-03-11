@@ -5,10 +5,12 @@ import re
 
 def extract_financials(text):
     """Extract financial data from text using Ollama"""
-    print("[DEBUG] Extracted PDF text (first 500 chars):\n", text[:500])
+    # Limit the text sent to the LLM to avoid timeouts and memory issues
+    limited_text = text[:2000]
+    print("[DEBUG] Extracted PDF text (first 500 chars):\n", limited_text[:500])
+    print(f"[DEBUG] Total extracted text length: {len(text)} (sending {len(limited_text)} chars to LLM)")
     model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
     print(f"[DEBUG] Using Ollama model: {model}")
-    
     prompt = f"""
     You are a financial analyst AI. Extract the following financial values as NUMBERS ONLY from the provided document text:
     - revenue
@@ -33,7 +35,7 @@ def extract_financials(text):
     WARNING: If you output anything except the JSON object, your answer will be rejected.
 
     Document:
-    {text[:12000]}
+    {limited_text}
     """
     
     try:

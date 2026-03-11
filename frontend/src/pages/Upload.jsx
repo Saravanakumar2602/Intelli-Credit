@@ -3,15 +3,29 @@ import { useNavigate } from "react-router-dom";
 import API_BASE_URL from "../config";
 import "../styles/Upload.css";
 
-export default function Upload({ onAnalysisComplete }) {
-  const [file, setFile] = useState(null);
+export default function Upload({ onAnalysisComplete, onUploadComplete }) {
   const [company, setCompany] = useState("");
+  const [files, setFiles] = useState({
+    alm: null,
+    shareholding: null,
+    borrowing: null,
+    annual: null,
+    portfolio: null,
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleFileChange = (e) => {
-    setFile(e.target.files[0]);
+  const documentTypes = [
+    { key: "alm", label: "ALM" },
+    { key: "shareholding", label: "Shareholding Pattern" },
+    { key: "borrowing", label: "Borrowing Profile" },
+    { key: "annual", label: "Annual Reports" },
+    { key: "portfolio", label: "Portfolio Data" },
+  ];
+
+  const handleFileChange = (key, e) => {
+    setFiles({ ...files, [key]: e.target.files[0] });
   };
 
   const handleCompanyChange = (e) => {
@@ -21,32 +35,47 @@ export default function Upload({ onAnalysisComplete }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
-    if (!file || !company) {
-      setError("Please select a PDF and enter a company name.");
+
+    if (!company) {
+      setError("Company name is required");
       return;
+    }
+
+    // All 5 files must be present
+    for (const key of Object.keys(files)) {
+      if (!files[key]) {
+        setError("Please upload all 5 required documents.");
+        return;
+      }
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append("file", file);
+      formData.append("company", company);
+      formData.append("alm", files.alm);
+      formData.append("shareholding", files.shareholding);
+      formData.append("borrowing", files.borrowing);
+      formData.append("annual", files.annual);
+      formData.append("portfolio", files.portfolio);
+
       const uploadRes = await fetch(`${API_BASE_URL}/upload/`, {
         method: "POST",
         body: formData,
       });
       if (!uploadRes.ok) throw new Error("File upload failed");
-      const { file_path } = await uploadRes.json();
+      const { file_paths } = await uploadRes.json();
 
-      const analyzeRes = await fetch(
-        `${API_BASE_URL}/analyze/?file_path=${encodeURIComponent(file_path)}&company=${encodeURIComponent(company)}`,
-        { method: "POST" }
-      );
-      if (!analyzeRes.ok) throw new Error("Analysis failed");
-      const data = await analyzeRes.json();
-
-      onAnalysisComplete(data);
-      navigate("/results");
+      // Pass uploaded files, company name, and file paths to classification page
+      const uploadedFileObjects = [
+        { name: files.alm.name, key: "alm" },
+        { name: files.shareholding.name, key: "shareholding" },
+        { name: files.borrowing.name, key: "borrowing" },
+        { name: files.annual.name, key: "annual" },
+        { name: files.portfolio.name, key: "portfolio" },
+      ];
+      if (onUploadComplete) onUploadComplete(uploadedFileObjects, company, file_paths);
+      // Note: navigation happens in onUploadComplete handler
     } catch (err) {
       setError(err.message);
     } finally {
@@ -54,58 +83,65 @@ export default function Upload({ onAnalysisComplete }) {
     }
   };
 
-  return (
-    <div className="upload-container">
-      <div className="upload-card">
-        <h1>Intelli-Credit Analyzer</h1>
-        <p className="subtitle">AI-Powered Corporate Credit Analysis</p>
-        
-        <form onSubmit={handleSubmit} className="upload-form">
-          <div className="form-group">
-            <label htmlFor="pdf-file">Upload PDF Document</label>
-            <input
-              id="pdf-file"
-              type="file"
-              accept="application/pdf"
-              onChange={handleFileChange}
-              className="file-input"
-            />
-            {file && <p className="file-name">Selected: {file.name}</p>}
-          </div>
+  const uploadedCount = Object.values(files).filter(f => f !== null).length;
 
-          <div className="form-group">
-            <label htmlFor="company-name">Company Name</label>
+  return (
+    <div className="upload-page">
+      <div className="upload-main">
+        <div className="upload-header">
+          <h1>Document Upload</h1>
+          <p>Submit financial documents for credit analysis</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="upload-form">
+          <div className="form-section">
+            <label>Company Name</label>
             <input
-              id="company-name"
               type="text"
               value={company}
               onChange={handleCompanyChange}
               placeholder="Enter company name"
-              className="text-input"
+              className="form-input"
             />
           </div>
 
-          <button
-            type="submit"
-            disabled={loading}
-            className={`submit-btn ${loading ? "loading" : ""}`}
-          >
-            {loading ? "Analyzing Document..." : "Analyze Document"}
+          <div className="form-section">
+            <div className="section-title">
+              <label>Upload Documents</label>
+              <span className="upload-count">{uploadedCount} / 5</span>
+            </div>
+
+            <div className="documents-grid">
+              {documentTypes.map((doc) => (
+                <div key={doc.key} className="document-slot">
+                  <input
+                    id={`file-${doc.key}`}
+                    type="file"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx"
+                    onChange={(e) => handleFileChange(doc.key, e)}
+                    className="file-input"
+                  />
+                  <label htmlFor={`file-${doc.key}`} className="document-label">
+                    <div className="label-content">
+                      <span className="doc-name">{doc.label}</span>
+                      {files[doc.key] ? (
+                        <span className="file-status">✓ {files[doc.key].name}</span>
+                      ) : (
+                        <span className="file-placeholder">Select file</span>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {error && <div className="error-message">{error}</div>}
+
+          <button type="submit" disabled={loading} className="submit-button">
+            {loading ? "Processing..." : "Analyze"}
           </button>
         </form>
-
-        {error && <div className="error-message">{error}</div>}
-
-        <div className="info-box">
-          <h3>Analysis Features</h3>
-          <ul>
-            <li>Extract financial data from PDF documents</li>
-            <li>Calculate financial ratios and metrics</li>
-            <li>Perform comprehensive risk assessment</li>
-            <li>Gather company news and sentiment analysis</li>
-            <li>Generate Credit Appraisal Memo (CAM)</li>
-          </ul>
-        </div>
       </div>
     </div>
   );
