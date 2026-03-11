@@ -8,6 +8,9 @@ import FinancialRatios from "./pages/FinancialRatios";
 import RiskAssessment from "./pages/RiskAssessment";
 import NewsSentiment from "./pages/NewsSentiment";
 import CreditAppraisalMemo from "./pages/CreditAppraisalMemo";
+import SecondaryResearch from "./pages/SecondaryResearch";
+import SWOTAnalysis from "./pages/SWOTAnalysis";
+import Recommendation from "./pages/Recommendation";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import "./App.css";
@@ -18,6 +21,9 @@ function ResultsNavigation({ onLogout }) {
     { path: "/results", label: "Financial Data" },
     { path: "/ratios", label: "Financial Ratios" },
     { path: "/risk", label: "Risk Assessment" },
+    { path: "/secondary", label: "Secondary Research" },
+    { path: "/swot", label: "SWOT Analysis" },
+    { path: "/recommendation", label: "Recommendation" },
     { path: "/news", label: "News & Sentiment" },
     { path: "/cam", label: "Credit Memo" },
   ];
@@ -142,6 +148,33 @@ function RoutesWrapper({
           <Protected>
             <ResultsNavigation onLogout={handleLogout} />
             <CreditAppraisalMemo data={analysisData} />
+          </Protected>
+        }
+      />
+      <Route
+        path="/secondary"
+        element={
+          <Protected>
+            <ResultsNavigation onLogout={handleLogout} />
+            <SecondaryResearch data={analysisData} />
+          </Protected>
+        }
+      />
+      <Route
+        path="/swot"
+        element={
+          <Protected>
+            <ResultsNavigation onLogout={handleLogout} />
+            <SWOTAnalysis data={analysisData} />
+          </Protected>
+        }
+      />
+      <Route
+        path="/recommendation"
+        element={
+          <Protected>
+            <ResultsNavigation onLogout={handleLogout} />
+            <Recommendation data={analysisData} />
           </Protected>
         }
       />
