@@ -7,8 +7,8 @@ import requests
 import os
 from datetime import datetime
 
-OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434")
-MODEL_NAME = os.getenv("LLM_MODEL", "qwen3:8b")
+MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
 def generate_swot_analysis(company, sector, financials, ratios, secondary_research, triangulation):
     """
@@ -67,10 +67,19 @@ Based on the above financial data and market research, generate a SWOT analysis 
 
 Generate 3-4 items for each category. Keep evidence concise and data-backed."""
 
+    if not GROQ_API_KEY:
+        print("[ERROR] GROQ_API_KEY is not set. Cannot run SWOT analysis.")
+        return create_default_swot(company, sector, financials, ratios)
+
     try:
-        # Call Ollama
+        # Call Groq API
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
+        }
         response = requests.post(
-            f"{OLLAMA_URL}/v1/chat/completions",
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers=headers,
             json={
                 "model": MODEL_NAME,
                 "messages": [{"role": "user", "content": prompt}],

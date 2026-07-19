@@ -21,8 +21,13 @@ def extract_financials(text):
     limited_text = text[:4000]  # Increased limit for better context
     print("[DEBUG] Extracted PDF text (first 500 chars):\n", limited_text[:500])
     print(f"[DEBUG] Total extracted text length: {len(text)} (sending {len(limited_text)} chars to LLM)")
-    model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
-    print(f"[DEBUG] Using Ollama model: {model}")
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    print(f"[DEBUG] Using Groq model: {model}")
+    
+    if not groq_api_key:
+        print("[ERROR] GROQ_API_KEY is not set. Cannot run LLM extraction. Returning default values.")
+        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
     
     prompt = f"""You are a financial extraction expert. Extract EXACT numerical values from this document.
 
@@ -53,12 +58,16 @@ RESPOND WITH ONLY THIS JSON FORMAT:
 """
     
     try:
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
             "temperature": 0.1  # Low temperature for consistent extraction
         }
-        response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=90)
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=90)
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
         print("[DEBUG] LLM Output:\n", result)
@@ -174,7 +183,12 @@ def _regex_extract_financials(text):
 
 def generate_risk_summary(financials, ratios, news):
     """Generate risk assessment summary using LLM"""
-    model = os.getenv("OLLAMA_MODEL", "qwen3:8b")
+    model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
+    groq_api_key = os.getenv("GROQ_API_KEY", "")
+    if not groq_api_key:
+        print("[ERROR] GROQ_API_KEY is not set. Cannot run risk summary generation.")
+        return "GROQ_API_KEY is not set. Risk summary cannot be generated."
+
     prompt = f"""
     You are a senior credit risk analyst AI. Given the following company financials, key ratios, and news sentiment, write a concise risk assessment summary (3-5 sentences) highlighting:
     - The company's financial strengths and weaknesses
@@ -195,11 +209,15 @@ def generate_risk_summary(financials, ratios, news):
     """
     
     try:
+        headers = {
+            "Authorization": f"Bearer {groq_api_key}",
+            "Content-Type": "application/json"
+        }
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}]
         }
-        response = requests.post("http://localhost:11434/v1/chat/completions", json=data, timeout=90)
+        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=90)
         response.raise_for_status()
         result = response.json()["choices"][0]["message"]["content"]
         print("[DEBUG] Risk Summary:\n", result)

@@ -8,7 +8,12 @@ from dotenv import load_dotenv
 # Load environment variables from .env file
 load_dotenv()
 
-from app.routes import upload, analyze, auth
+from app.routes import upload, analyze, auth, onboarding
+from app.database import Base, engine
+from app.models.user import User
+
+# Auto-create database tables on startup
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Intelli-Credit API",
@@ -28,6 +33,7 @@ app.add_middleware(
 app.include_router(upload.router)
 app.include_router(analyze.router)
 app.include_router(auth.router)
+app.include_router(onboarding.router)
 
 # Download CAM report endpoint
 @app.get("/download/")
@@ -60,5 +66,5 @@ async def download_file(file_path: str):
         return {"error": str(e)}
 
 # Mount uploads folder for static file serving
-if os.path.exists("uploads"):
-    app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")

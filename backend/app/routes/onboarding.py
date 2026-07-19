@@ -17,4 +17,4 @@ router = APIRouter(prefix="/onboarding")
 def submit_onboarding(data: OnboardingData):
     # Here you would save to DB or process as needed
     # For now, just echo back
-    return {"message": "Onboarding data received", "data": data.dict()}
+    return {"message": "Onboarding data received", "data": data.model_dump()}

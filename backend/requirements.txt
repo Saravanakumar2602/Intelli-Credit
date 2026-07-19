@@ -11,3 +11,11 @@ python-docx
 beautifulsoup4
 textblob
 python-dotenv
+pytest
+httpx
+python-jose
+passlib
+bcrypt
+reportlab
+sqlalchemy
+psycopg2-binary
