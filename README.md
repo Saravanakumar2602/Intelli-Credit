@@ -1,67 +1,113 @@
-# Intelli-Credit
+# 📊 Intelli-Credit Platform
 
-AI-powered corporate credit analysis platform that extracts financials from credit PDFs, calculates ratios, runs secondary market research, triangulates data, performs SWOT analysis, and produces explainable loan recommendations and a Credit Appraisal Memo (CAM).
+[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-19.0-61DAFB.svg?style=flat&logo=React&logoColor=white)](https://react.dev/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com/)
+[![Supabase](https://img.shields.io/badge/Database-Supabase%20%7C%20SQLite-3FCF8E.svg?style=flat&logo=Supabase&logoColor=white)](https://supabase.com/)
+[![LLM Powered](https://img.shields.io/badge/LLM-Groq%20API-red.svg)](https://groq.com/)
+
+**Intelli-Credit** is an advanced, production-grade AI-powered corporate credit analysis and risk assessment platform. By combining a **FastAPI backend** and a modern **React frontend**, it automates corporate loan appraisals. It processes credit PDF documents (ALM, Shareholding, Borrowings, Annual Reports, and Portfolios), extracts key financial data via the cloud-hosted **Groq API**, calculates key risk metrics, performs market sentiment triangulation, generates SWOT analysis, and produces a printable **Credit Appraisal Memo (CAM)**.
+
+---
+
+## 🏛️ System Flow & Architecture
+
+```text
+       ┌─────────────────────────────────────────────────────────────┐
+       │                       REACT SPA CLIENT                      │
+       └──────────────────────────────┬──────────────────────────────┘
+                                      │ (HTTP REST API)
+                                      ▼
+       ┌─────────────────────────────────────────────────────────────┐
+       │                      FASTAPI WEB SERVER                     │
+       ├─────────────────────────────────────────────────────────────┤
+       │                                                             │
+       │  [/upload]       ──►  Parse text using pdfplumber           │
+       │                                                             │
+       │  [/analyze]      ──►  Call Groq API (llama-3.3-70b-versatile) │
+       │                       - Extract financial metrics           │
+       │                       - Generate risk analysis summary      │
+       │                                                             │
+       │                  ──►  Analyze Market News & Sentiment       │
+       │                       (Triangulate TextBlob + NewsAPI)      │
+       │                                                             │
+       │                  ──►  Calculate Financial Ratios            │
+       │                       (Leverage, Debt, Profit Margins, ROE) │
+       │                                                             │
+       │                  ──►  Perform SWOT Analysis (Groq LLM)      │
+       │                                                             │
+       │                  ──►  Generate Credit Appraisal Memo        │
+       │                       (ReportLab PDF Generator)             │
+       │                                                             │
+       │  [/onboarding]   ──►  SQL Database Storage                  │
+       │                       (Supabase Postgres / SQLite ORM)      │
+       │                                                             │
+       └─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🔥 Key Features
+
+* **Auto-Document Classification**: Uploads 5 files (ALM, Shareholding, Borrowing, Annual Reports, Portfolio) and auto-detects their document types.
+* **LLM-Powered Data Extraction**: Sends raw parsed PDF chunks to the **Groq API** (using high-speed Llama models) to return structured JSON financial schemas.
+* **Market & Regulatory Triangulation**: Scrapes market news via NewsAPI and runs NLP sentiment analysis to cross-examine financial metrics against public reputation and find regulatory anomalies.
+* **Explainable Loan Recommendation Engine**: Programmatically assesses financials, leverage, and confidence metrics to output `APPROVE`, `CONDITIONAL_APPROVE`, or `REJECT` decisions with explicit justifications and conditions.
+* **Credit Appraisal Memo (CAM) Generation**: Compiles the final analysis into a structured, professional, and downloadable PDF report using ReportLab.
+* **Database-Agnostic Storage**: Ready to connect out-of-the-box to cloud-based **Supabase (PostgreSQL)** databases or local **SQLite** database engines.
 
 ---
 
 ## 📂 Project Structure
 
-The project has been restructured into clean, self-contained directories. This modular separation makes the application highly maintainable, interview-ready, and easy to deploy in production:
-
 ```text
 Intelli-Credit/                    # Root workspace
 ├── backend/                       # FastAPI application service
-│   ├── app/                       # Source code directory
-│   │   ├── models/                # SQLAlchemy database models
-│   │   ├── routes/                # FastAPI routing layers
-│   │   ├── services/              # Domain logic (OCR, LLM, SWOT, recommendations)
-│   │   ├── utils/                 # General utility scripts
+│   ├── app/                       # Python source code
+│   │   ├── models/                # SQLAlchemy ORM models (User database schemas)
+│   │   ├── routes/                # FastAPI routers (upload, analyze, auth, onboarding)
+│   │   ├── services/              # Business logic (OCR, Groq LLM parser, CAM writer)
+│   │   ├── utils/                 # Utilities
 │   │   ├── auth.py                # JWT & cryptographic security context
-│   │   ├── config.py              # Application settings
-│   │   ├── database.py            # SQLite database initialization
-│   │   └── main.py                # FastAPI main application instance
-│   ├── tests/                     # Backend automated test suite
-│   │   ├── conftest.py            # Pytest client fixtures
-│   │   ├── test_auth.py           # Authentication route testing
-│   │   └── test_analyze.py        # Analysis pipelines & validation testing
-│   ├── .env.example               # Backend environment template
-│   ├── Dockerfile                 # Production image build context
-│   ├── requirements.txt           # Python application dependencies
-│   └── run.py                     # Dev convenience start script
+│   │   ├── database.py            # SQLite/Supabase PostgreSQL engine config
+│   │   └── main.py                # FastAPI main app instance & startup schemas
+│   ├── tests/                     # Automated test suites
+│   │   ├── conftest.py            # Pytest mock client fixtures
+│   │   ├── test_auth.py           # Authentication test cases
+│   │   └── test_analyze.py        # Analysis endpoints & safety validation tests
+│   ├── .env.example               # Backend environment templates
+│   ├── Dockerfile                 # Multi-stage production container setup
+│   ├── requirements.txt           # Python backend dependencies
+│   └── run.py                     # Local dev start script
 │
-├── frontend/                      # React frontend application (Vite SPA)
-│   ├── src/                       # Source code directory
-│   │   ├── assets/                # Visual components & static media
-│   │   ├── pages/                 # React pages (login, upload, analysis results)
-│   │   └── styles/                # CSS layout definitions
-│   ├── public/                    # Uncompiled assets
+├── frontend/                      # React frontend client
+│   ├── src/                       # Javascript source code
+│   │   ├── assets/                # Images & public materials
+│   │   ├── pages/                 # Single-page UI routing pages
+│   │   └── styles/                # CSS themes & glassmorphic layouts
+│   ├── public/                    # Uncompiled static assets
 │   ├── .gitignore                 # Frontend version control rules
-│   ├── Dockerfile                 # Nginx-backed multi-stage build file
-│   ├── nginx.conf                 # Nginx SPA web server routing configs
-│   ├── package.json               # Frontend dependencies & run scripts
-│   └── vite.config.js             # Vite compiler & local dev proxy rules
+│   ├── Dockerfile                 # Multi-stage client container setup
+│   ├── nginx.conf                 # SPA routing proxy rules for Nginx
+│   ├── package.json               # Node application packages
+│   └── vite.config.js             # Vite configurations
 │
-├── docs/                          # Cleaned documentation directory
-│   ├── ARCHITECTURE.md            # Detailed structural system design doc
-│   ├── PHASE2_IMPLEMENTATION.md   # Feature roadmap implementation details
-│   └── QUICK_START.md             # Standard platform onboarding guide
+├── docs/                          # Project design documentation
+│   ├── ARCHITECTURE.md            # Structural diagrams & system explanations
+│   ├── PHASE2_IMPLEMENTATION.md   # Deployment workflows & roadmap schedules
+│   └── QUICK_START.md             # Testing workflow and sample execution guide
 │
-├── uploads/                       # PDF uploads & generated CAM documents (git-ignored)
-├── docker-compose.yml             # Full-stack orchestrator configuration
-├── .gitignore                     # Global workspace files ignored in git
-└── README.md                      # General introduction and project index
+├── docker-compose.yml             # Full-stack Docker multi-container runner
+├── .gitignore                     # Global ignored files list (local keys, builds)
+└── README.md                      # Index page entrypoint
 ```
 
 ---
 
-## ⚡ Quick Start (Local Run)
+## ⚡ Local Installation & Development
 
-### Prerequisites
-* **Python 3.10+** (Backend)
-* **Node.js 18+** (Frontend)
-* Optional: **Ollama** running locally on host for local LLM features (`qwen3:8b` model)
-
-### 1. Run the Backend
+### 1. Backend API Server Setup
 1. Navigate to the backend directory:
    ```bash
    cd backend
@@ -71,72 +117,68 @@ Intelli-Credit/                    # Root workspace
    python -m venv .venv
    # Windows PowerShell:
    .venv\Scripts\Activate.ps1
-   # Linux/macOS:
+   # macOS/Linux:
    source .venv/bin/activate
    ```
 3. Install dependencies:
    ```bash
    pip install -r requirements.txt
    ```
-4. Copy the `.env.example` file and configure variables:
+4. Configure environment parameters:
    ```bash
    cp .env.example .env
+   # Open .env and add your GROQ_API_KEY
    ```
-5. Start the FastAPI development server:
+5. Launch FastAPI development server:
    ```bash
    python run.py
    ```
-   The backend API documentation is now live at `http://localhost:8000/docs`.
+   Interactive API docs are available at `http://localhost:8000/docs`.
 
-### 2. Run the Frontend
-1. Open a new terminal tab, and navigate to the frontend directory:
+### 2. Frontend React Setup
+1. Open a new terminal tab and enter the frontend directory:
    ```bash
    cd frontend
    ```
-2. Install npm modules:
+2. Install npm packages:
    ```bash
    npm install
    ```
-3. Start the Vite React development server:
+3. Start the dev compiler:
    ```bash
    npm run dev
    ```
-   The application UI is accessible at `http://localhost:5173`.
+   Open `http://localhost:5173` to interact with the platform.
 
----
-
-## 🐳 Docker Deployment (Production-Ready)
-
-To package and run the entire stack in isolated Docker containers, execute a single command from the project root:
-
+### 3. Running Automated Tests
+To run the automated `pytest` test suite:
 ```bash
-docker compose up --build
+cd backend
+pytest
 ```
 
-* **Frontend Container**: Listens on port `80` (`http://localhost`). It compiles the React project using Node and serves the static files using a high-performance **Nginx** server.
-* **Backend Container**: Listens on port `8000` (`http://localhost:8000`). It hosts the FastAPI server.
-* **Database & Volumes**: Mounts the `./uploads` directory dynamically, allowing files to persist on the host filesystem outside the container boundary.
+---
+
+## 🐳 Running with Docker (Recommended)
+
+Start the entire platform (FastAPI + React compiled on Nginx) with a single command from the project root:
+
+```bash
+GROQ_API_KEY="your-groq-api-key" docker compose up --build
+```
+* **Frontend SPA**: Serves statically on port `80` (`http://localhost`).
+* **Backend API**: Accessible on port `8000` (`http://localhost:8000`).
 
 ---
 
-## 🧪 Running Automated Tests
+## ⚙️ Environment Variables
 
-A collection of unit and integration tests is included to verify authentication, file upload flows, and request sanitization.
+The backend loads configuration variables from your `.env` file. These can be adjusted:
 
-To run the test suite locally:
-1. Ensure you are in the `backend` directory with the virtual environment activated.
-2. Install testing packages if not already present:
-   ```bash
-   pip install pytest httpx
-   ```
-3. Execute the tests:
-   ```bash
-   pytest
-   ```
-
----
-
-## 📖 Additional Resources
-* **System Design & Flow**: [ARCHITECTURE.md](file:///c:/Saravanakumar%20G/Projects/Intelli-Credit/docs/ARCHITECTURE.md)
-* **Test Guide & Flow walkthroughs**: [QUICK_START.md](file:///c:/Saravanakumar%20G/Projects/Intelli-Credit/docs/QUICK_START.md)
-* **Project Roadmap & Phases**: [PHASE2_IMPLEMENTATION.md](file:///c:/Saravanakumar%20G/Projects/Intelli-Credit/docs/PHASE2_IMPLEMENTATION.md)
+| Variable | Description | Default |
+| :--- | :--- | :--- |
+| `GROQ_API_KEY` | **Required**. Your Groq Console API credentials. | *None* |
+| `GROQ_MODEL` | The Groq LLM model to run extraction tasks. | `llama-3.3-70b-versatile` |
+| `DATABASE_URL` | SQLite path or Supabase/PostgreSQL connection string. | `sqlite:///./intelli_credit.db` |
+| `NEWS_API_KEY` | Optional NewsAPI key for real-time sentiment analysis. | *None (uses mock fallback)* |
+| `JWT_SECRET_KEY` | Custom encryption string to secure JSON Web Tokens. | `supersecretkey` |
