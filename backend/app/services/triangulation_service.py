@@ -97,19 +97,30 @@ def triangulate_data(company, financials, ratios, secondary_research, risk_score
     risk_validation = {
         "aspect": "Risk Score Consistency",
         "risk_score": risk_score.get("score", 0),
-        "risk_label": risk_score.get("label", "unknown"),
-        "recommendation": risk_score.get("recommendation", ""),
+        "risk_label": risk_score.get("risk_level", "unknown"),
         "is_consistent": True
     }
     
-    # If risk is high but financial health is excellent - inconsistency
-    if risk_score.get("score", 0) > 70 and financial_health > 70:
+    r_score = risk_score.get("score", 100)
+    
+    # Inconsistent if risk is Low (score > 70) but financial health is Poor (< 40)
+    if r_score > 70 and financial_health < 40:
         risk_validation["is_consistent"] = False
         triangulation["anomalies"].append({
             "type": "Risk-Health Inconsistency",
             "severity": "medium",
-            "description": "High risk score despite strong financial health - investigate causes",
-            "risk_score": risk_score.get("score", 0),
+            "description": "Low risk rating (high risk score) despite poor financial health - investigate indicators",
+            "risk_score": r_score,
+            "financial_health": financial_health
+        })
+    # Inconsistent if risk is High (score < 40) but financial health is Good/Excellent (> 70)
+    elif r_score < 40 and financial_health > 70:
+        risk_validation["is_consistent"] = False
+        triangulation["anomalies"].append({
+            "type": "Risk-Health Inconsistency",
+            "severity": "medium",
+            "description": "High risk rating (low risk score) despite strong financial health - investigate indicators",
+            "risk_score": r_score,
             "financial_health": financial_health
         })
     

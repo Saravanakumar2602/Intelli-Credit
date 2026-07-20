@@ -1,60 +1,120 @@
 import os
 import json
-import requests
+import httpx
 import re
 
-def extract_financials(text):
-    """Extract financial data from text using Ollama with enhanced extraction logic"""
+def get_smart_summary_context(text, max_chars=18000):
+    """Filter and rank paragraphs/pages in a document by relevance to financial metrics"""
+    if len(text) <= max_chars:
+        return text
+    
+    # Split by paragraph/page separator
+    chunks = text.split("\n\n")
+    if len(chunks) <= 1:
+        chunks = text.split("\n")
+        
+    keywords = [
+        "balance sheet", "income statement", "profit and loss", "profit & loss",
+        "total revenue", "net profit", "total debt", "total assets", "total liabilities",
+        "current assets", "current liabilities", "borrowing", "shareholding", "portfolio",
+        "cash flow", "equity", "pat", "ebitda", "operating income", "sales"
+    ]
+    
+    chunk_scores = []
+    for chunk in chunks:
+        score = 0
+        chunk_lower = chunk.lower()
+        
+        # Word matches count
+        for kw in keywords:
+            score += chunk_lower.count(kw) * 8
+            
+        # Number density (financial statements contain mostly numbers)
+        numbers = len(re.findall(r'\b\d+[\d,.]*\b', chunk))
+        score += numbers * 1.5
+        
+        chunk_scores.append((score, chunk))
+        
+    # Sort by relevance score desc
+    chunk_scores.sort(key=lambda x: x[0], reverse=True)
+    
+    selected_chunks = []
+    current_len = 0
+    for score, chunk in chunk_scores:
+        if current_len + len(chunk) + 2 > max_chars:
+            # If we don't have enough content yet, take a prefix of the next best chunk
+            if current_len < max_chars // 2:
+                selected_chunks.append(chunk[:max_chars - current_len])
+            break
+        selected_chunks.append(chunk)
+        current_len += len(chunk) + 2
+        
+    return "\n\n".join(selected_chunks)
+
+async def extract_financials(text, custom_schema=None):
+    """Extract financial metrics asynchronously using Groq API with dynamic schema support"""
     print(f"[DEBUG] PDF TEXT LENGTH: {len(text)}")
-    print(f"[DEBUG] FIRST 1000 CHARS:\n{text[:1000]}")
     
-    # First try regex extraction for common patterns
-    extracted = _regex_extract_financials(text)
-    print(f"[DEBUG] Regex extraction result: {extracted}")
+    # Define schema fields
+    if custom_schema:
+        fields = {item["name"]: item["type"] for item in custom_schema}
+    else:
+        fields = {
+            "revenue": "number",
+            "net_profit": "number",
+            "total_debt": "number",
+            "total_assets": "number",
+            "total_liabilities": "number",
+            "current_assets": "number",
+            "current_liabilities": "number"
+        }
+        
+    # Standard format default dict
+    default_values = {}
+    for name, dtype in fields.items():
+        if dtype == "number":
+            default_values[name] = 0
+        elif dtype == "date":
+            default_values[name] = ""
+        else:
+            default_values[name] = ""
+
+    # Smart filtering for context
+    smart_text = get_smart_summary_context(text, max_chars=18000)
+    print(f"[DEBUG] Smart chunking reduced text to {len(smart_text)} chars")
     
-    if extracted and any(extracted.values()):
-        print("[DEBUG] ✓ Successfully extracted via regex patterns")
-        return extracted
-    
-    # If regex fails (all zeros), use LLM
-    print("[DEBUG] ⚠ Regex extraction all zeros, falling back to LLM")
-    limited_text = text[:4000]  # Increased limit for better context
-    print("[DEBUG] Extracted PDF text (first 500 chars):\n", limited_text[:500])
-    print(f"[DEBUG] Total extracted text length: {len(text)} (sending {len(limited_text)} chars to LLM)")
     model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     groq_api_key = os.getenv("GROQ_API_KEY", "")
-    print(f"[DEBUG] Using Groq model: {model}")
     
     if not groq_api_key:
-        print("[ERROR] GROQ_API_KEY is not set. Cannot run LLM extraction. Returning default values.")
-        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
+        print("[ERROR] GROQ_API_KEY is not set. Cannot run LLM extraction. Returning fallback values.")
+        # Attempt fallback for default schema using regex
+        if not custom_schema:
+            return _regex_extract_financials(text)
+        return default_values
+        
+    schema_desc = "\n".join([f"- {name} ({dtype})" for name, dtype in fields.items()])
     
-    prompt = f"""You are a financial extraction expert. Extract EXACT numerical values from this document.
-
-FIND AND EXTRACT:
-1. REVENUE - Look for: "Revenue from Operations", "Total Revenue", "Sales", "Net Sales"
-2. NET PROFIT - Look for: "Net Profit", "Net Income", "Bottom Line", "PAT"
-3. TOTAL DEBT - Look for: "Total Debt", "Total Borrowing", "Total Outstanding Debt"
-4. TOTAL ASSETS - Look for: "Total Assets", "TOTAL ASSETS"
-5. TOTAL LIABILITIES - Look for: "Total Liabilities", "TOTAL LIABILITIES"
-6. CURRENT ASSETS - Look for: "Current Assets"
-7. CURRENT LIABILITIES - Look for: "Current Liabilities"
+    prompt = f"""You are a financial extraction expert. Extract the following fields from the financial document text:
+{schema_desc}
 
 CRITICAL RULES:
-- Extract numbers exactly as they appear in the document
-- Numbers may be in Lakhs (L), Crores (C), or thousands
-- Numbers may have commas or spaces as separators
-- Multiply by 1 if in base units, by 100000 if in Lakhs, by 10000000 if in Crores
-- ALWAYS output valid JSON with 7 keys: revenue, net_profit, total_debt, total_assets, total_liabilities, current_assets, current_liabilities
-- ALL values MUST be numbers (integers), no strings or text
-- If you cannot find a value, set it to 0
-- Output NOTHING except the JSON object
+1. Extract numerical values exactly as they appear in the document.
+2. Scale the values to base units:
+   - If the document specifies values are in "Lakhs" or "L", multiply by 100,000.
+   - If in "Crores" or "Cr", multiply by 10,000,000.
+   - If in "Millions" or "M", multiply by 1,000,000.
+   - If in "Thousands" or "K", multiply by 1,000.
+3. Output a valid JSON object containing exactly the requested keys: {list(fields.keys())}.
+4. All value types must match the requested schema (e.g., numbers for 'number', strings for 'string').
+5. If a field is not found in the text, return 0 for number fields and "" for string fields. Do not make up numbers.
+6. Output ONLY the raw JSON object. Do not wrap it in markdown formatting or add any conversational text.
 
 DOCUMENT TEXT:
-{limited_text}
+{smart_text}
 
 RESPOND WITH ONLY THIS JSON FORMAT:
-{{"revenue": NUMBER, "net_profit": NUMBER, "total_debt": NUMBER, "total_assets": NUMBER, "total_liabilities": NUMBER, "current_assets": NUMBER, "current_liabilities": NUMBER}}
+{json.dumps(default_values)}
 """
     
     try:
@@ -65,57 +125,52 @@ RESPOND WITH ONLY THIS JSON FORMAT:
         data = {
             "model": model,
             "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.1  # Low temperature for consistent extraction
+            "temperature": 0.0,
+            "response_format": {"type": "json_object"}
         }
-        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=90)
-        response.raise_for_status()
-        result = response.json()["choices"][0]["message"]["content"]
-        print("[DEBUG] LLM Output:\n", result)
-
-        # Clean up common LLM output issues
-        result = result.strip()
-        # Remove markdown code block if present
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=data,
+                timeout=60.0
+            )
+            response.raise_for_status()
+            
+        result = response.json()["choices"][0]["message"]["content"].strip()
+        print(f"[DEBUG] LLM raw response: {result}")
+        
+        # Clean markdown wrappers if any
         if result.startswith("```"):
             result = re.sub(r'^```[a-z]*\n?', '', result)
             result = re.sub(r'\n?```$', '', result)
-        
-        # Try to parse JSON
-        try:
-            parsed = json.loads(result)
-            # Ensure all values are integers
-            for key in ["revenue", "net_profit", "total_debt", "total_assets", "total_liabilities", "current_assets", "current_liabilities"]:
-                if key in parsed:
-                    parsed[key] = int(float(str(parsed[key]).replace(",", "")))
-                else:
-                    parsed[key] = 0
-            return parsed
-        except Exception as e:
-            # Try to find JSON in the result
-            match = re.search(r'\{[^{}]*"revenue"[^{}]*\}', result, re.DOTALL)
-            if match:
-                try:
-                    parsed = json.loads(match.group(0))
-                    for key in ["revenue", "net_profit", "total_debt", "total_assets", "total_liabilities", "current_assets", "current_liabilities"]:
-                        if key in parsed:
-                            parsed[key] = int(float(str(parsed[key]).replace(",", "")))
-                        else:
-                            parsed[key] = 0
-                    return parsed
-                except Exception:
-                    pass
+            result = result.strip()
             
-            print(f"[ERROR] Could not parse LLM output as JSON: {result}")
-            # Return zeros instead of error
-            return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
-    except requests.Timeout:
-        print("[ERROR] LLM extraction timed out.")
-        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
-    except requests.RequestException as e:
-        print(f"[ERROR] LLM extraction failed: {e}")
-        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
+        parsed = json.loads(result)
+        
+        # Enforce schemas & types
+        sanitized = {}
+        for name, dtype in fields.items():
+            val = parsed.get(name, default_values[name])
+            if dtype == "number":
+                try:
+                    # Clean punctuation
+                    if isinstance(val, str):
+                        val = val.replace(",", "").replace(" ", "")
+                    sanitized[name] = int(float(val))
+                except (ValueError, TypeError):
+                    sanitized[name] = 0
+            else:
+                sanitized[name] = str(val)
+                
+        return sanitized
+        
     except Exception as e:
-        print(f"[ERROR] Unexpected error in LLM extraction: {e}")
-        return {"revenue": 0, "net_profit": 0, "total_debt": 0, "total_assets": 0, "total_liabilities": 0, "current_assets": 0, "current_liabilities": 0}
+        print(f"[ERROR] LLM extraction failed: {e}. Falling back to regex.")
+        if not custom_schema:
+            return _regex_extract_financials(text)
+        return default_values
 
 def _regex_extract_financials(text):
     """Extract financials using regex patterns for common formats"""
@@ -129,7 +184,6 @@ def _regex_extract_financials(text):
         "current_liabilities": 0
     }
     
-    # Pattern to find financial values (handles formats like "15,000" or "15000" followed by optional "Lakhs" or "L")
     patterns = {
         "revenue": [
             r"(?:Revenue from Operations|Revenue|Total Revenue|Net Sales|Sales)\s*[:\-]?\s*[₹$]?\s*([\d,]+(?:\.\d+)?)\s*(?:Lakhs?|L|Cr)?",
@@ -173,18 +227,27 @@ def _regex_extract_financials(text):
             if match:
                 try:
                     value = match.group(1).replace(",", "").replace(" ", "")
-                    extracted[key] = int(float(value))
-                    print(f"[DEBUG] Regex found {key}: {extracted[key]}")
+                    # Match standard unit keywords for scaling in regex too
+                    scale = 1
+                    snippet = text[max(0, match.start() - 100):min(len(text), match.end() + 100)].lower()
+                    if "crore" in snippet or "cr" in snippet:
+                        scale = 10000000
+                    elif "lakh" in snippet or " l " in snippet or "lakhs" in snippet:
+                        scale = 100000
+                        
+                    extracted[key] = int(float(value) * scale)
+                    print(f"[DEBUG] Regex fallback found {key}: {extracted[key]}")
                     break
                 except (ValueError, AttributeError):
                     continue
-    
+                    
     return extracted
 
-def generate_risk_summary(financials, ratios, news):
-    """Generate risk assessment summary using LLM"""
+async def generate_risk_summary(financials, ratios, news):
+    """Generate risk assessment summary asynchronously using Groq LLM"""
     model = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
     groq_api_key = os.getenv("GROQ_API_KEY", "")
+    
     if not groq_api_key:
         print("[ERROR] GROQ_API_KEY is not set. Cannot run risk summary generation.")
         return "GROQ_API_KEY is not set. Risk summary cannot be generated."
@@ -205,7 +268,7 @@ def generate_risk_summary(financials, ratios, news):
     NEWS SENTIMENT:
     {json.dumps(news, indent=2)}
 
-    Output ONLY the summary text. Do NOT include any explanations, markdown, or extra formatting.
+    Output ONLY the summary text. Do NOT include any explanations, markdown wrappers, or extra formatting.
     """
     
     try:
@@ -215,23 +278,27 @@ def generate_risk_summary(financials, ratios, news):
         }
         data = {
             "model": model,
-            "messages": [{"role": "user", "content": prompt}]
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0.3
         }
-        response = requests.post("https://api.groq.com/openai/v1/chat/completions", headers=headers, json=data, timeout=90)
-        response.raise_for_status()
-        result = response.json()["choices"][0]["message"]["content"]
-        print("[DEBUG] Risk Summary:\n", result)
-        # Clean up common LLM output issues
-        result = result.strip()
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json=data,
+                timeout=60.0
+            )
+            response.raise_for_status()
+            
+        result = response.json()["choices"][0]["message"]["content"].strip()
+        
         if result.startswith("```"):
             result = result.lstrip("`json").strip('`\n ')
+            
         return result
-    except requests.Timeout:
-        print("[ERROR] Risk summary generation timed out.")
-        return "Risk summary generation timed out."
-    except requests.RequestException as e:
+        
+    except Exception as e:
         print(f"[ERROR] Risk summary generation failed: {e}")
         return f"Risk summary generation failed: {str(e)}"
-    except Exception as e:
-        print(f"[ERROR] Unexpected error in risk summary generation: {e}")
-        return f"Unexpected error in risk summary generation: {str(e)}"
+

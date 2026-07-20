@@ -97,9 +97,9 @@ def generate_recommendation(company, financials, ratios, risk_score, secondary_r
         "assessment": f"Risk Score: {risk_value}/100 ({risk_label})"
     }
     
-    if lower_is_better_risk > 30:  # risk > 30 means high risk
+    if risk_label == "HIGH RISK":
         recommendation["risk_factors"].append("High overall risk profile")
-    elif lower_is_better_risk > 15:  # risk > 15 means medium risk
+    elif risk_label == "MEDIUM RISK":
         recommendation["risk_factors"].append("Moderate risk profile")
     else:
         recommendation["positive_factors"].append("Low risk profile")

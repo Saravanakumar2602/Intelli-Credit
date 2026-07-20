@@ -70,9 +70,9 @@ export default function RiskAssessment({ data }) {
           ></div>
         </div>
         <div className="meter-labels">
-          <span>Low Risk</span>
-          <span>Medium Risk</span>
           <span>High Risk</span>
+          <span>Medium Risk</span>
+          <span>Low Risk</span>
         </div>
       </div>
 

@@ -5,8 +5,11 @@ import "../styles/FileClassification.css";
 const defaultSchema = [
   { name: "revenue", type: "number" },
   { name: "net_profit", type: "number" },
+  { name: "total_debt", type: "number" },
   { name: "total_assets", type: "number" },
   { name: "total_liabilities", type: "number" },
+  { name: "current_assets", type: "number" },
+  { name: "current_liabilities", type: "number" }
 ];
 
 export default function FileClassification({ files, company, filePaths, onSchemaChange, onApprove }) {
@@ -20,7 +23,7 @@ export default function FileClassification({ files, company, filePaths, onSchema
       setClassified(
         files.map((file) => ({
           name: typeof file === 'string' ? file : file.name,
-          type: "Auto-Detected",
+          type: file.key ? file.key.toUpperCase() : "Auto-Detected",
           approved: true,
         }))
       );
@@ -41,16 +44,45 @@ export default function FileClassification({ files, company, filePaths, onSchema
       return;
     }
 
+    // Filter approved files only
+    const approvedFilePaths = {};
+    classified.forEach((item, idx) => {
+      if (item.approved) {
+        const originalFile = files[idx];
+        const key = originalFile.key || originalFile;
+        if (filePaths[key]) {
+          approvedFilePaths[key] = filePaths[key];
+        }
+      }
+    });
+
+    if (Object.keys(approvedFilePaths).length === 0) {
+      setError("Please approve at least one document for ingestion.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     try {
-      const analyzeRes = await fetch(
-        `${API_BASE_URL}/analyze/?file_path=${encodeURIComponent(JSON.stringify(filePaths))}&company=${encodeURIComponent(company)}`,
-        { method: "POST" }
-      );
+      const token = localStorage.getItem("token");
+      const analyzeRes = await fetch(`${API_BASE_URL}/analyze/`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          file_paths: approvedFilePaths,
+          company: company,
+          schema_config: schema
+        })
+      });
+
       if (!analyzeRes.ok) {
-        throw new Error(`Analysis failed with status ${analyzeRes.status}`);
+        const errDetail = await analyzeRes.json();
+        throw new Error(errDetail.detail || `Analysis failed with status ${analyzeRes.status}`);
       }
+      
       const analysisResults = await analyzeRes.json();
       
       if (onApprove) {
@@ -58,6 +90,7 @@ export default function FileClassification({ files, company, filePaths, onSchema
       }
     } catch (err) {
       setError(err.message);
+    } finally {
       setLoading(false);
     }
   };
@@ -180,3 +213,4 @@ export default function FileClassification({ files, company, filePaths, onSchema
     </div>
   );
 }
+

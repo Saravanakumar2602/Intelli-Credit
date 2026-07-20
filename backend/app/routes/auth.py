@@ -1,6 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
-import uuid
+from sqlalchemy.orm import Session
+import re
+from app.auth import get_db, verify_password, get_password_hash, create_access_token
+from app.models.user import User
 
 router = APIRouter(tags=["auth"])
 
@@ -15,44 +18,44 @@ class SignupRequest(BaseModel):
 
 class LoginResponse(BaseModel):
     access_token: str
+    token_type: str = "bearer"
     user: dict
 
-DEMO_USER = {
-    "email": "demo@bank.com",
-    "password": "demo123",
-    "name": "Demo User"
-}
-
-users_db = {}
-
 @router.post("/login/")
-def login(request: LoginRequest):
+def login(request: LoginRequest, db: Session = Depends(get_db)):
     """Login endpoint"""
-    if request.email == DEMO_USER["email"] and request.password == DEMO_USER["password"]:
-        token = str(uuid.uuid4())
-        return LoginResponse(
-            access_token=token,
-            user={"email": request.email, "name": DEMO_USER["name"]}
-        )
+    user = db.query(User).filter(User.email == request.email).first()
+    if not user or not verify_password(request.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
     
-    if request.email in users_db and users_db[request.email]["password"] == request.password:
-        token = str(uuid.uuid4())
-        return LoginResponse(
-            access_token=token,
-            user={"email": request.email, "name": users_db[request.email]["name"]}
-        )
-    
-    raise HTTPException(status_code=401, detail="Invalid credentials")
+    token = create_access_token(data={"sub": user.email})
+    return LoginResponse(
+        access_token=token,
+        user={"email": user.email, "name": user.username}
+    )
 
 @router.post("/signup/")
-def signup(request: SignupRequest):
+def signup(request: SignupRequest, db: Session = Depends(get_db)):
     """Signup endpoint"""
-    if request.email in users_db or request.email == DEMO_USER["email"]:
+    # Simple email regex validation
+    if not re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", request.email.strip()):
+        raise HTTPException(status_code=400, detail="Invalid email format")
+
+    # Check if email is already registered
+    existing_user = db.query(User).filter(User.email == request.email).first()
+    if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
     
-    users_db[request.email] = {
-        "password": request.password,
-        "name": request.name
-    }
+    hashed_password = get_password_hash(request.password)
+    new_user = User(
+        username=request.name,
+        email=request.email.strip(),
+        hashed_password=hashed_password
+    )
+    
+    db.add(new_user)
+    db.commit()
     
     return {"message": "Account created successfully. Please login."}
+
+

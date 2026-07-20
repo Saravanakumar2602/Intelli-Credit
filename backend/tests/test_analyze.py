@@ -16,7 +16,7 @@ def test_onboarding_submission(client):
     }
     response = client.post("/onboarding/", json=payload)
     assert response.status_code == 200
-    assert response.json()["message"] == "Onboarding data received"
+    assert "saved successfully" in response.json()["message"]
     assert response.json()["data"]["cin"] == payload["cin"]
 
 def test_file_upload_success(client):
@@ -65,17 +65,19 @@ def test_download_file_not_found(client):
 
 def test_llm_extractor_fallback_when_api_key_missing(monkeypatch):
     """Test that LLM extractor returns zero financials if API key is missing"""
+    import asyncio
     from app.services.llm_extractor import extract_financials
     monkeypatch.setenv("GROQ_API_KEY", "")
-    res = extract_financials("some random text")
+    res = asyncio.run(extract_financials("some random text"))
     assert res["revenue"] == 0
     assert res["net_profit"] == 0
 
 def test_swot_analysis_fallback_when_api_key_missing(monkeypatch):
     """Test that SWOT analysis returns default mock SWOT if API key is missing"""
+    import asyncio
     from app.services.swot_analysis import generate_swot_analysis
     monkeypatch.setenv("GROQ_API_KEY", "")
-    res = generate_swot_analysis("Test Company", "Tech", {}, {}, {}, {})
+    res = asyncio.run(generate_swot_analysis("Test Company", "Tech", {}, {}, {}, {}))
     assert res["company"] == "Test Company"
     assert len(res["strengths"]) > 0  # Should use default fallback SWOT
 

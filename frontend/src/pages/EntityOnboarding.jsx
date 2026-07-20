@@ -54,9 +54,13 @@ export default function EntityOnboarding({ onSubmit }) {
     setError("");
     setSuccess("");
     try {
+      const token = localStorage.getItem("token");
       const res = await fetch(`${API_BASE_URL}/onboarding/`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({ ...entity, ...loan })
       });
       if (!res.ok) throw new Error("Submission failed");

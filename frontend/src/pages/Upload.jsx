@@ -57,8 +57,12 @@ export default function Upload({ onUploadComplete }) {
       formData.append("annual", files.annual);
       formData.append("portfolio", files.portfolio);
 
+      const token = localStorage.getItem("token");
       const uploadRes = await fetch(`${API_BASE_URL}/upload/`, {
         method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`
+        },
         body: formData,
       });
       if (!uploadRes.ok) throw new Error("File upload failed");

@@ -3,16 +3,17 @@ SWOT Analysis Service
 Generates comprehensive SWOT analysis using LLM
 Based on: financial data, ratios, news, market analysis
 """
-import requests
+import httpx
 import os
+import json
 from datetime import datetime
 
 MODEL_NAME = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile")
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
-def generate_swot_analysis(company, sector, financials, ratios, secondary_research, triangulation):
+async def generate_swot_analysis(company, sector, financials, ratios, secondary_research, triangulation):
     """
-    Generate SWOT analysis using LLM
+    Generate SWOT analysis using LLM asynchronously
     """
     
     # Prepare context for LLM
@@ -72,42 +73,36 @@ Generate 3-4 items for each category. Keep evidence concise and data-backed."""
         return create_default_swot(company, sector, financials, ratios)
 
     try:
-        # Call Groq API
         headers = {
             "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
-        response = requests.post(
-            "https://api.groq.com/openai/v1/chat/completions",
-            headers=headers,
-            json={
-                "model": MODEL_NAME,
-                "messages": [{"role": "user", "content": prompt}],
-                "temperature": 0.7,
-                "max_tokens": 2000
-            },
-            timeout=60
-        )
         
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.groq.com/openai/v1/chat/completions",
+                headers=headers,
+                json={
+                    "model": MODEL_NAME,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.5,
+                    "max_tokens": 2000,
+                    "response_format": {"type": "json_object"}
+                },
+                timeout=60.0
+            )
+            
         if response.status_code == 200:
             result = response.json()
-            content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+            content = result.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
             
-            # Extract JSON from response
-            import json
-            try:
-                # Try direct JSON parse
-                swot = json.loads(content)
-            except:
-                # Try extracting JSON from text
-                start = content.find("{")
-                end = content.rfind("}") + 1
-                if start != -1 and end > start:
-                    swot = json.loads(content[start:end])
-                else:
-                    swot = create_default_swot(company, sector, financials, ratios)
-            
-            return swot
+            # Clean markdown formatting if any
+            if content.startswith("```"):
+                content = re.sub(r'^```[a-z]*\n?', '', content)
+                content = re.sub(r'\n?```$', '', content)
+                content = content.strip()
+                
+            return json.loads(content)
         else:
             return create_default_swot(company, sector, financials, ratios)
     
@@ -167,3 +162,4 @@ def create_default_swot(company, sector, financials, ratios):
         "overall_assessment": f"{company} shows mixed financial health with adequate asset base but requires focus on debt reduction and profitability improvement.",
         "key_focus_areas": ["Debt reduction", "Revenue growth", "Operational efficiency"]
     }
+

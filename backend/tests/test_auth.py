@@ -1,8 +1,13 @@
+import uuid
+
 def test_signup_success(client):
     """Test successful signup"""
+    suffix = uuid.uuid4().hex[:8]
+    email = f"new_user_{suffix}@bank.com"
+    name = f"New User {suffix}"
     response = client.post(
         "/signup/",
-        json={"email": "new_user@bank.com", "password": "password123", "name": "New User"}
+        json={"email": email, "password": "password123", "name": name}
     )
     assert response.status_code == 200
     assert response.json()["message"] == "Account created successfully. Please login."

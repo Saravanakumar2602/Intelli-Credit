@@ -9,8 +9,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.routes import upload, analyze, auth, onboarding
-from app.database import Base, engine
+from app.database import Base, engine, SessionLocal
 from app.models.user import User
+from app.models.onboarding import Onboarding
+from app.auth import get_password_hash
 
 # Auto-create database tables on startup
 Base.metadata.create_all(bind=engine)
@@ -20,6 +22,27 @@ app = FastAPI(
     description="AI-powered corporate credit analysis engine",
     version="1.0"
 )
+
+@app.on_event("startup")
+def create_demo_user():
+    db = SessionLocal()
+    try:
+        demo_user = db.query(User).filter(User.email == "demo@bank.com").first()
+        if not demo_user:
+            hashed_pwd = get_password_hash("demo123")
+            demo = User(username="Demo User", email="demo@bank.com", hashed_password=hashed_pwd)
+            db.add(demo)
+            db.commit()
+    finally:
+        db.close()
+@app.get("/")
+def read_root():
+    return {
+        "status": "online",
+        "service": "Intelli-Credit API Backend",
+        "version": "1.0",
+        "documentation": "/docs"
+    }
 
 # Enable CORS
 app.add_middleware(
