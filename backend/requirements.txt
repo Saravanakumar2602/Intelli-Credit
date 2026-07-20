@@ -19,3 +19,8 @@ bcrypt
 reportlab
 sqlalchemy
 psycopg2-binary
+celery
+redis
+alembic
+slowapi
+cryptography

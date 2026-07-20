@@ -32,7 +32,18 @@ COPY --from=build /app/dist /usr/share/nginx/html
 # Copy our custom Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose HTTP port
-EXPOSE 80
+# Set up directory permissions so Nginx can run as non-root user
+RUN touch /var/run/nginx.pid && \
+    chown -R nginx:nginx /var/run/nginx.pid /usr/share/nginx/html /var/cache/nginx /var/log/nginx /etc/nginx/conf.d
+
+# Switch to the non-root user
+USER nginx
+
+# Expose non-privileged HTTP port
+EXPOSE 8080
+
+# Health check to ensure frontend is responding
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
 
 CMD ["nginx", "-g", "daemon off;"]
