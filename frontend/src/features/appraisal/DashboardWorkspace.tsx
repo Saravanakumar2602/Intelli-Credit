@@ -266,17 +266,17 @@ export default function DashboardWorkspace() {
     { name: "Long Term Assets", value: Math.max(10000, (financials.total_assets || 100000) - (financials.current_assets || 50000)) }
   ];
 
-  const riskBadgeVariant = {
+  const riskBadgeVariant = ({
     "Low Risk": "success" as const,
     "Medium Risk": "warning" as const,
     "High Risk": "danger" as const
-  }[risk.risk_level] || "default";
+  }[risk.risk_level as "Low Risk" | "Medium Risk" | "High Risk"]) || "default";
 
-  const decisionBadgeVariant = {
+  const decisionBadgeVariant = ({
     "APPROVE": "success" as const,
     "CONDITIONAL_APPROVE": "warning" as const,
     "REJECT": "danger" as const
-  }[recommendation.decision] || "default";
+  }[recommendation.decision as "APPROVE" | "CONDITIONAL_APPROVE" | "REJECT"]) || "default";
 
   return (
     <div className="space-y-6">
@@ -357,7 +357,7 @@ export default function DashboardWorkspace() {
               </CardHeader>
               <CardContent className="h-[280px] flex items-center justify-center">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" radius="70%" data={radarData}>
+                  <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
                     <PolarGrid stroke="#e2e8f0" />
                     <PolarAngleAxis dataKey="subject" tick={{ fontSize: 9, fill: "#64748b" }} />
                     <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fontSize: 8 }} />
