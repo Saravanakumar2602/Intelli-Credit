@@ -1,77 +1,75 @@
-# 📊 Intelli-Credit Platform
+# 📊 Intelli-Credit Enterprise Underwriting Platform
 
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Python Version](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg?style=flat&logo=React&logoColor=white)](https://react.dev/)
-[![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com/)
-[![Database](https://img.shields.io/badge/Database-SQLAlchemy%20%7C%20SQLite-3FCF8E.svg?style=flat&logo=SQLite&logoColor=white)](https://sqlite.org/)
-[![LLM Powered](https://img.shields.io/badge/LLM-Groq%20API-red.svg)](https://groq.com/)
+[![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS_v4-Enabled-38B2AC.svg?style=flat&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.7%2B-3178C6.svg?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Docker Hardened](https://img.shields.io/badge/Docker-Hardened_Non--Root-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com/)
 
-**Intelli-Credit** is a production-grade, AI-powered corporate credit appraisal and risk assessment platform. By combining an **asynchronous FastAPI backend** and a modern **React frontend**, it automates corporate loan underwriting pipelines. The system ingests primary corporate materials (PDF/Word/Excel files) and performs parallel LLM-driven parsing, public news research, secondary intelligence collection, and SWOT analysis. It calculates risk indexes and outputs a printable **Credit Appraisal Memo (CAM)** PDF.
+**Intelli-Credit** is a flagship, AI-powered corporate credit underwriting and risk assessment platform designed to reflect software used by premier global banks (e.g. JPMorgan, Goldman Sachs, HSBC). 
+
+By reorganizing code into **Clean Architecture (SOLID/DRY)**, implementing a **9-agent parallel AI synthesis pipeline**, and rebuilding the **React client from scratch using TailwindCSS v4 and TypeScript**, the platform delivers a secure, accessible, and audit-compliant appraisal solution.
 
 ---
 
-## 🏛️ System Flow & Architecture
+## 🏛️ System Architecture
 
 ```text
        ┌─────────────────────────────────────────────────────────────┐
-       │                 REACT CLIENT SPA (PORT 5173)                │
+       │             REACT 19 + TSX CLIENT SPA (PORT 8080)            │
        └──────────────────────────────┬──────────────────────────────┘
                                       │ (HTTP REST API + JWT Token)
                                       ▼
        ┌─────────────────────────────────────────────────────────────┐
        │                FASTAPI WEB SERVER (PORT 8000)               │
        ├─────────────────────────────────────────────────────────────┤
-       │                                                             │
-       │  [POST /upload]     ──► Sanitizes LFI paths, appends UUIDs   │
-       │                         Parses PDF / DOCX / XLSX in parallel│
-       │                                                             │
-       │  [POST /analyze]    ──► Concurrently runs via asyncio.gather│
-       │                         - Custom schema Groq LLM extraction │
-       │                         - Neutral-fallback sector news API  │
-       │                         - Calculated leverage & margin ratios│
-       │                         - SWOT + Triangulation synthesis    │
-       │                         - ReportLab multi-page CAM PDF      │
-       │                                                             │
-       │  [POST /onboarding] ──► Validates CIN/PAN regex patterns    │
-       │                         Persists profile to SQL Database    │
-       │                                                             │
+       │  [api/]                                                     │
+       │    ├── auth.py         ──► Locks attempts (5), rot tokens   │
+       │    ├── onboarding.py   ──► Step validations (CIN / PAN)      │
+       │    ├── upload.py       ──► Sig magic checks, LFI paths      │
+       │    ├── analyze.py      ──► Celery task trigger & polling    │
+       │    └── monitoring.py   ──► Prometheus metrics & diagnostics │
+       └──────────────────────────────┬──────────────────────────────┘
+                                      │
+                                      ▼
+       ┌─────────────────────────────────────────────────────────────┐
+       │                   CELERY TASK RUNNER (REDIS)                │
+       ├─────────────────────────────────────────────────────────────┤
+       │  [tasks/analysis_task.py]                                   │
+       │    ──► Concurrently triggers 9 specialized AI Agents        │
+       │    ──► Indexes semantic data with FAISS vector RAG           │
+       │    ──► Evaluates Piotroski, Altman Z-Score, Merton Model    │
+       │    ──► Synthesizes ReportLab multi-page CAM Underwriting PDF│
        └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔥 Key Features & Refactoring Additions
+## 🔥 Key Enterprise Transformations
 
-### 1. Unified Authentication & SQL Database Storage
-*   **Onboarding Persistence**: Integrated standard corporate application tables (CIN, PAN, Sector, Loan Details) in SQLite via SQLAlchemy.
-*   **Direct Bcrypt Hashing**: Replaced deprecated `passlib` context with direct `bcrypt` calls to resolve environment-specific installation bugs and startup exceptions.
-*   **Volatile Storage Removal**: Shifted signup and login queries to authenticate against the persistent database instead of volatile in-memory arrays.
-*   **Auto-Seeding**: Seeds a standard bank credit officer demo account (`demo@bank.com` / `demo123`) automatically on startup.
+### 1. Robust Clean Backend Architecture
+- **Layered Structure**: Restructured code into controllers (`api/`), connection handlers (`database/`), relational entities (`models/`), data queries (`repositories/`), cryptography/ingestion validators (`security/`), financial analytics (`services/`), and queue tasks (`tasks/`).
+- **Access Control & RTR**: Lockouts block IP bounds after 5 failed password attempts (12-char complexity rules). Implements refresh token rotation (RTR) to prevent session replays.
+- **High-Security Ingestion**: Blocks rename attacks via Magic Bytes checking, zip bomb scans, LFI traversal path overrides, and optional AES-256 storage-level file encryption.
 
-### 2. Multi-Format Parsing & Smart Context Chunking
-*   **Word & Excel Reading**: Ingests `.docx` (via `python-docx`) and `.xlsx` (via `pandas`) spreadsheet tab data dynamically in addition to standard PDFs.
-*   **Smart Paragraph Ranking**: Evaluates paragraph relevance based on critical financial keyword frequencies. Extracts and combines the highest-density blocks up to 18,000 characters to prevent prompt context truncation.
-*   **Dynamic Custom Schemas**: Accepts custom schema arrays configured dynamically on the frontend to format system extraction prompts on-the-fly.
+### 2. Parallel 9-Agent AI Pipeline
+- **Specialized AI Agents**: Runs 9 models in parallel (Extractors, SWOT Auditors, Ratio analysts, Sentiment engines, Citation guards) validating inputs via strict Pydantic schemas.
+- **RAG & Anti-Hallucination**: Embeds documents into a local FAISS index, feeding relevant chunks to the LLM and forcing exact page number citations.
 
-### 3. Asynchronous Pipeline & Parallel Analysis
-*   **Parallel Execution**: Concurrently runs LLM financial extraction, sector news indexing, and secondary intelligence collection inside an `asyncio.gather` pipeline.
-*   **Non-Blocking Operations**: Executes synchronous text-extraction libraries (`pdfplumber`, `python-docx`, `pandas`) within a thread pool executor (`loop.run_in_executor`) to prevent blocking FastAPI's main event loop.
+### 3. Financial Scoring & Risk Analytics
+- **20+ Ratios**: Operating margins, leverage indices, turnover, and interest cover.
+- **Solvency Modeler**: Calculates Altman Z-Score, Piotroski F-Score, Beneish M-Score, and Merton structural probability of default.
+- **Risk Heatmap**: Mapped dynamically across 8 distinct categories.
 
-### 4. Security & Access Control
-*   **Local File Inclusion (LFI) Traversal Guard**: Asserts that all path resolutions are strictly jailed inside the `uploads/` subdirectory.
-*   **File Overwrite Protections**: Appends random UUID hashes to uploaded files to prevent naming collisions.
-*   **JWT Token Protection**: Secures the upload, onboarding, and analysis endpoints using JSON Web Token authentication headers.
-*   **Traceback Stripping**: Cleanses internal traceback dumps from 500 error responses to secure server details.
+### 4. Fully Redesigned React Client (From Scratch)
+- **Design Tokens**: Slate backgrounds with glassmorphic cards and teal/cyan glowing active states.
+- **Command Search Palette**: Trigger fuzzy query searches across files and menus using `⌘K` or `Ctrl+K`.
+- **Telemetry Monitoring**: Embedded dashboards displaying database load, Prometheus api latencies, and worker queue sizes.
 
-### 5. Credit Appraisal Memo (CAM) & Risk Metric Visualizations
-*   **In-Depth Report Generation**: Produces a downloadable multi-page PDF credit memo compiling ratios, SWOT matrices, regulatory warnings, next steps, and dynamic tables mapped to the dynamic schema.
-*   **Triangulation bug fix**: Resolved the inverted consistency logic where high-risk parameters were incorrectly categorized as anomalous.
-*   **Risk Meter Realignment**: Aligned visual meter scale labels on the frontend to correctly map score boundaries.
-
-### 6. Synchronized Navigation & Routing
-*   **Protected Frontend Views**: Restricts the `/onboarding` page behind the React Router auth wrapper to auto-redirect unauthenticated users to `/login`.
-*   **Unified Navbar**: Synchronizes active tab visual states dynamically across Dashboard, Onboarding, and Results pages using the `useLocation()` hook.
+### 5. Hardened Non-Root Containers
+- **Non-Privileged Access**: Backend runs under `credit_user` on port 8000; frontend runs under `nginx` on port 8080 (non-privileged port binding).
+- **Healthchecks**: Periodically polls endpoints via `curl` and `wget` spider tasks.
 
 ---
 
@@ -82,7 +80,7 @@
    ```bash
    cd backend
    ```
-2. Create and activate a python virtual environment:
+2. Create and activate a virtual environment:
    ```bash
    python -m venv .venv
    # Windows PowerShell:
@@ -90,66 +88,49 @@
    # macOS/Linux:
    source .venv/bin/activate
    ```
-3. Install dependencies:
+3. Install packages:
    ```bash
    pip install -r requirements.txt
    ```
-4. Configure environment parameters:
+4. Configure env files:
    ```bash
    cp .env.example .env
-   # Open .env and add your GROQ_API_KEY
+   # Add your GROQ_API_KEY
    ```
-5. Launch FastAPI development server:
+5. Launch FastAPI:
    ```bash
    python run.py
    ```
-   Interactive API docs are available at `http://localhost:8000/docs`, and online status is checked at `http://localhost:8000/`.
 
-### 2. Frontend React Setup
+### 2. Frontend React Client Setup
 1. Open a new terminal tab and enter the frontend directory:
    ```bash
    cd frontend
    ```
-2. Install npm packages:
+2. Install dependencies:
    ```bash
    npm install
    ```
-3. Start the dev compiler:
+3. Start Vite dev compiler:
    ```bash
    npm run dev
    ```
-   Open `http://localhost:5173` to interact with the platform.
 
-### 3. Running Automated Tests
-To execute the automated `pytest` test suite:
+### 3. Running Tests
+To run unit and integration tests:
 ```bash
-cd backend
-..\.venv\Scripts\python -m pytest
+# From project root
+.venv\Scripts\python.exe -m pytest backend/tests
 ```
 
 ---
 
-## 🐳 Running with Docker
+## 🐳 Docker Deployment
 
-Start the entire platform (FastAPI + React compiled on Nginx) with a single command from the project root:
-
+Build and orchestrate the hardened non-root containers:
 ```bash
-GROQ_API_KEY="your-groq-api-key" docker compose up --build
+GROQ_API_KEY="your-groq-key" docker compose up --build
 ```
-* **Frontend SPA**: Serves statically on port `80` (`http://localhost`).
-* **Backend API**: Accessible on port `8000` (`http://localhost:8000`).
-
----
-
-## ⚙️ Environment Variables
-
-Configure parameters in your backend `.env` file:
-
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `GROQ_API_KEY` | **Required**. Your Groq Console API credentials. | *None* |
-| `GROQ_MODEL` | The Groq LLM model to run extraction tasks. | `llama-3.3-70b-versatile` |
-| `DATABASE_URL` | SQLite path or Supabase/PostgreSQL connection string. | `sqlite:///./intelli_credit.db` |
-| `NEWS_API_KEY` | Optional NewsAPI key. (If missing, uses LLM-based neutral sector fallback) | *None* |
-| `JWT_SECRET_KEY` | Custom encryption string to sign JSON Web Tokens. | `supersecretkey` |
-
+* **Frontend SPA**: Serves statically on port `80` (redirects internally to `8080`).
+* **Backend API**: Accessible on port `8000`.
+* **Database Location**: Securely mounted inside `/app/intelli_credit.db`.
