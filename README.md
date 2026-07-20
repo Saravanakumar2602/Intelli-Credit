@@ -4,10 +4,10 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100%2B-009688.svg?style=flat&logo=FastAPI&logoColor=white)](https://fastapi.tiangolo.com/)
 [![React](https://img.shields.io/badge/React-19.0-61DAFB.svg?style=flat&logo=React&logoColor=white)](https://react.dev/)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED.svg?style=flat&logo=Docker&logoColor=white)](https://www.docker.com/)
-[![Supabase](https://img.shields.io/badge/Database-Supabase%20%7C%20SQLite-3FCF8E.svg?style=flat&logo=Supabase&logoColor=white)](https://supabase.com/)
+[![Database](https://img.shields.io/badge/Database-SQLAlchemy%20%7C%20SQLite-3FCF8E.svg?style=flat&logo=SQLite&logoColor=white)](https://sqlite.org/)
 [![LLM Powered](https://img.shields.io/badge/LLM-Groq%20API-red.svg)](https://groq.com/)
 
-**Intelli-Credit** is an advanced, production-grade AI-powered corporate credit analysis and risk assessment platform. By combining a **FastAPI backend** and a modern **React frontend**, it automates corporate loan appraisals. It processes credit PDF documents (ALM, Shareholding, Borrowings, Annual Reports, and Portfolios), extracts key financial data via the cloud-hosted **Groq API**, calculates key risk metrics, performs market sentiment triangulation, generates SWOT analysis, and produces a printable **Credit Appraisal Memo (CAM)**.
+**Intelli-Credit** is a production-grade, AI-powered corporate credit appraisal and risk assessment platform. By combining an **asynchronous FastAPI backend** and a modern **React frontend**, it automates corporate loan underwriting pipelines. The system ingests primary corporate materials (PDF/Word/Excel files) and performs parallel LLM-driven parsing, public news research, secondary intelligence collection, and SWOT analysis. It calculates risk indexes and outputs a printable **Credit Appraisal Memo (CAM)** PDF.
 
 ---
 
@@ -15,93 +15,63 @@
 
 ```text
        ┌─────────────────────────────────────────────────────────────┐
-       │                       REACT SPA CLIENT                      │
+       │                 REACT CLIENT SPA (PORT 5173)                │
        └──────────────────────────────┬──────────────────────────────┘
-                                      │ (HTTP REST API)
+                                      │ (HTTP REST API + JWT Token)
                                       ▼
        ┌─────────────────────────────────────────────────────────────┐
-       │                      FASTAPI WEB SERVER                     │
+       │                FASTAPI WEB SERVER (PORT 8000)               │
        ├─────────────────────────────────────────────────────────────┤
        │                                                             │
-       │  [/upload]       ──►  Parse text using pdfplumber           │
+       │  [POST /upload]     ──► Sanitizes LFI paths, appends UUIDs   │
+       │                         Parses PDF / DOCX / XLSX in parallel│
        │                                                             │
-       │  [/analyze]      ──►  Call Groq API (llama-3.3-70b-versatile) │
-       │                       - Extract financial metrics           │
-       │                       - Generate risk analysis summary      │
+       │  [POST /analyze]    ──► Concurrently runs via asyncio.gather│
+       │                         - Custom schema Groq LLM extraction │
+       │                         - Neutral-fallback sector news API  │
+       │                         - Calculated leverage & margin ratios│
+       │                         - SWOT + Triangulation synthesis    │
+       │                         - ReportLab multi-page CAM PDF      │
        │                                                             │
-       │                  ──►  Analyze Market News & Sentiment       │
-       │                       (Triangulate TextBlob + NewsAPI)      │
-       │                                                             │
-       │                  ──►  Calculate Financial Ratios            │
-       │                       (Leverage, Debt, Profit Margins, ROE) │
-       │                                                             │
-       │                  ──►  Perform SWOT Analysis (Groq LLM)      │
-       │                                                             │
-       │                  ──►  Generate Credit Appraisal Memo        │
-       │                       (ReportLab PDF Generator)             │
-       │                                                             │
-       │  [/onboarding]   ──►  SQL Database Storage                  │
-       │                       (Supabase Postgres / SQLite ORM)      │
+       │  [POST /onboarding] ──► Validates CIN/PAN regex patterns    │
+       │                         Persists profile to SQL Database    │
        │                                                             │
        └─────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🔥 Key Features
+## 🔥 Key Features & Refactoring Additions
 
-* **Auto-Document Classification**: Uploads 5 files (ALM, Shareholding, Borrowing, Annual Reports, Portfolio) and auto-detects their document types.
-* **LLM-Powered Data Extraction**: Sends raw parsed PDF chunks to the **Groq API** (using high-speed Llama models) to return structured JSON financial schemas.
-* **Market & Regulatory Triangulation**: Scrapes market news via NewsAPI and runs NLP sentiment analysis to cross-examine financial metrics against public reputation and find regulatory anomalies.
-* **Explainable Loan Recommendation Engine**: Programmatically assesses financials, leverage, and confidence metrics to output `APPROVE`, `CONDITIONAL_APPROVE`, or `REJECT` decisions with explicit justifications and conditions.
-* **Credit Appraisal Memo (CAM) Generation**: Compiles the final analysis into a structured, professional, and downloadable PDF report using ReportLab.
-* **Database-Agnostic Storage**: Ready to connect out-of-the-box to cloud-based **Supabase (PostgreSQL)** databases or local **SQLite** database engines.
+### 1. Unified Authentication & SQL Database Storage
+*   **Onboarding Persistence**: Integrated standard corporate application tables (CIN, PAN, Sector, Loan Details) in SQLite via SQLAlchemy.
+*   **Direct Bcrypt Hashing**: Replaced deprecated `passlib` context with direct `bcrypt` calls to resolve environment-specific installation bugs and startup exceptions.
+*   **Volatile Storage Removal**: Shifted signup and login queries to authenticate against the persistent database instead of volatile in-memory arrays.
+*   **Auto-Seeding**: Seeds a standard bank credit officer demo account (`demo@bank.com` / `demo123`) automatically on startup.
 
----
+### 2. Multi-Format Parsing & Smart Context Chunking
+*   **Word & Excel Reading**: Ingests `.docx` (via `python-docx`) and `.xlsx` (via `pandas`) spreadsheet tab data dynamically in addition to standard PDFs.
+*   **Smart Paragraph Ranking**: Evaluates paragraph relevance based on critical financial keyword frequencies. Extracts and combines the highest-density blocks up to 18,000 characters to prevent prompt context truncation.
+*   **Dynamic Custom Schemas**: Accepts custom schema arrays configured dynamically on the frontend to format system extraction prompts on-the-fly.
 
-## 📂 Project Structure
+### 3. Asynchronous Pipeline & Parallel Analysis
+*   **Parallel Execution**: Concurrently runs LLM financial extraction, sector news indexing, and secondary intelligence collection inside an `asyncio.gather` pipeline.
+*   **Non-Blocking Operations**: Executes synchronous text-extraction libraries (`pdfplumber`, `python-docx`, `pandas`) within a thread pool executor (`loop.run_in_executor`) to prevent blocking FastAPI's main event loop.
 
-```text
-Intelli-Credit/                    # Root workspace
-├── backend/                       # FastAPI application service
-│   ├── app/                       # Python source code
-│   │   ├── models/                # SQLAlchemy ORM models (User database schemas)
-│   │   ├── routes/                # FastAPI routers (upload, analyze, auth, onboarding)
-│   │   ├── services/              # Business logic (OCR, Groq LLM parser, CAM writer)
-│   │   ├── utils/                 # Utilities
-│   │   ├── auth.py                # JWT & cryptographic security context
-│   │   ├── database.py            # SQLite/Supabase PostgreSQL engine config
-│   │   └── main.py                # FastAPI main app instance & startup schemas
-│   ├── tests/                     # Automated test suites
-│   │   ├── conftest.py            # Pytest mock client fixtures
-│   │   ├── test_auth.py           # Authentication test cases
-│   │   └── test_analyze.py        # Analysis endpoints & safety validation tests
-│   ├── .env.example               # Backend environment templates
-│   ├── Dockerfile                 # Multi-stage production container setup
-│   ├── requirements.txt           # Python backend dependencies
-│   └── run.py                     # Local dev start script
-│
-├── frontend/                      # React frontend client
-│   ├── src/                       # Javascript source code
-│   │   ├── assets/                # Images & public materials
-│   │   ├── pages/                 # Single-page UI routing pages
-│   │   └── styles/                # CSS themes & glassmorphic layouts
-│   ├── public/                    # Uncompiled static assets
-│   ├── .gitignore                 # Frontend version control rules
-│   ├── Dockerfile                 # Multi-stage client container setup
-│   ├── nginx.conf                 # SPA routing proxy rules for Nginx
-│   ├── package.json               # Node application packages
-│   └── vite.config.js             # Vite configurations
-│
-├── docs/                          # Project design documentation
-│   ├── ARCHITECTURE.md            # Structural diagrams & system explanations
-│   ├── PHASE2_IMPLEMENTATION.md   # Deployment workflows & roadmap schedules
-│   └── QUICK_START.md             # Testing workflow and sample execution guide
-│
-├── docker-compose.yml             # Full-stack Docker multi-container runner
-├── .gitignore                     # Global ignored files list (local keys, builds)
-└── README.md                      # Index page entrypoint
-```
+### 4. Security & Access Control
+*   **Local File Inclusion (LFI) Traversal Guard**: Asserts that all path resolutions are strictly jailed inside the `uploads/` subdirectory.
+*   **File Overwrite Protections**: Appends random UUID hashes to uploaded files to prevent naming collisions.
+*   **JWT Token Protection**: Secures the upload, onboarding, and analysis endpoints using JSON Web Token authentication headers.
+*   **Traceback Stripping**: Cleanses internal traceback dumps from 500 error responses to secure server details.
+
+### 5. Credit Appraisal Memo (CAM) & Risk Metric Visualizations
+*   **In-Depth Report Generation**: Produces a downloadable multi-page PDF credit memo compiling ratios, SWOT matrices, regulatory warnings, next steps, and dynamic tables mapped to the dynamic schema.
+*   **Triangulation bug fix**: Resolved the inverted consistency logic where high-risk parameters were incorrectly categorized as anomalous.
+*   **Risk Meter Realignment**: Aligned visual meter scale labels on the frontend to correctly map score boundaries.
+
+### 6. Synchronized Navigation & Routing
+*   **Protected Frontend Views**: Restricts the `/onboarding` page behind the React Router auth wrapper to auto-redirect unauthenticated users to `/login`.
+*   **Unified Navbar**: Synchronizes active tab visual states dynamically across Dashboard, Onboarding, and Results pages using the `useLocation()` hook.
 
 ---
 
@@ -133,7 +103,7 @@ Intelli-Credit/                    # Root workspace
    ```bash
    python run.py
    ```
-   Interactive API docs are available at `http://localhost:8000/docs`.
+   Interactive API docs are available at `http://localhost:8000/docs`, and online status is checked at `http://localhost:8000/`.
 
 ### 2. Frontend React Setup
 1. Open a new terminal tab and enter the frontend directory:
@@ -151,15 +121,15 @@ Intelli-Credit/                    # Root workspace
    Open `http://localhost:5173` to interact with the platform.
 
 ### 3. Running Automated Tests
-To run the automated `pytest` test suite:
+To execute the automated `pytest` test suite:
 ```bash
 cd backend
-pytest
+..\.venv\Scripts\python -m pytest
 ```
 
 ---
 
-## 🐳 Running with Docker (Recommended)
+## 🐳 Running with Docker
 
 Start the entire platform (FastAPI + React compiled on Nginx) with a single command from the project root:
 
@@ -173,12 +143,13 @@ GROQ_API_KEY="your-groq-api-key" docker compose up --build
 
 ## ⚙️ Environment Variables
 
-The backend loads configuration variables from your `.env` file. These can be adjusted:
+Configure parameters in your backend `.env` file:
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
 | `GROQ_API_KEY` | **Required**. Your Groq Console API credentials. | *None* |
 | `GROQ_MODEL` | The Groq LLM model to run extraction tasks. | `llama-3.3-70b-versatile` |
 | `DATABASE_URL` | SQLite path or Supabase/PostgreSQL connection string. | `sqlite:///./intelli_credit.db` |
-| `NEWS_API_KEY` | Optional NewsAPI key for real-time sentiment analysis. | *None (uses mock fallback)* |
-| `JWT_SECRET_KEY` | Custom encryption string to secure JSON Web Tokens. | `supersecretkey` |
+| `NEWS_API_KEY` | Optional NewsAPI key. (If missing, uses LLM-based neutral sector fallback) | *None* |
+| `JWT_SECRET_KEY` | Custom encryption string to sign JSON Web Tokens. | `supersecretkey` |
+
