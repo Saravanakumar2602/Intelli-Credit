@@ -12,3 +12,4 @@ from backend.models.audit_log import AuditLog
 from backend.models.activity_log import ActivityLog
 from backend.models.model_version import ModelVersion
 from backend.models.analysis_job import AnalysisJob
+from backend.models.comment import ApplicationComment

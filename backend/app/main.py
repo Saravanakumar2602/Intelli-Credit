@@ -20,7 +20,7 @@ from backend.middleware.observability import ObservabilityMiddleware
 # Central API Router
 from backend.api.router import api_router
 
-# Auto-create tables on startup (works for SQLite and PostgreSQL)
+# Auto-create tables on startup (PostgreSQL)
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
@@ -35,8 +35,8 @@ def create_demo_user():
     db = SessionLocal()
     try:
         demo = db.query(User).filter(User.email == "demo@bank.com").first()
+        hashed_pwd = get_password_hash("demo123")
         if not demo:
-            hashed_pwd = get_password_hash("demo123")
             demo = User(
                 username="Demo User",
                 email="demo@bank.com",
@@ -46,7 +46,14 @@ def create_demo_user():
                 is_verified=True
             )
             db.add(demo)
-            db.commit()
+        else:
+            # Always ensure the demo user has the correct password and active status on startup
+            demo.hashed_password = hashed_pwd
+            demo.is_active = True
+            demo.is_verified = True
+            demo.failed_login_attempts = 0
+            demo.lockout_until = None
+        db.commit()
     finally:
         db.close()
 
@@ -57,7 +64,13 @@ app.add_middleware(SecurityHeadersMiddleware)
 # 2. Register CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -67,13 +80,20 @@ app.add_middleware(
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 # 4. For backward compatibility with existing frontend, mount routers at root prefix too
-from backend.api import auth, onboarding, upload, analyze, search, monitoring
-app.include_router(auth.router)
+from backend.api import auth, onboarding, upload, analyze, search, monitoring, dashboard, applications, companies, documents, cam, reports
+app.include_router(auth.router, prefix="/auth")
+app.include_router(auth.router) # Mount at root prefix for test suite backward compatibility
 app.include_router(onboarding.router)
 app.include_router(upload.router)
 app.include_router(analyze.router)
 app.include_router(search.router)
 app.include_router(monitoring.router)
+app.include_router(dashboard.router)
+app.include_router(applications.router)
+app.include_router(companies.router)
+app.include_router(documents.router)
+app.include_router(cam.router)
+app.include_router(reports.router)
 
 @app.get("/")
 def read_root():

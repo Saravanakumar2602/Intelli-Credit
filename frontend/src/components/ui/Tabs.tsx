@@ -1,75 +1,53 @@
-import React, { useState } from "react";
-import { motion } from "framer-motion";
+import * as React from "react";
+import * as TabsPrimitive from "@radix-ui/react-tabs";
 
-export interface TabItem {
-  id: string;
-  label: string;
-  icon?: React.ComponentType<{ className?: string }>;
-  content: React.ReactNode;
-}
+import { cn } from "@/lib/utils";
 
-export interface TabsProps {
-  items: TabItem[];
-  defaultTab?: string;
-  className?: string;
-  onChange?: (tabId: string) => void;
-}
+const Tabs = TabsPrimitive.Root;
 
-export const Tabs: React.FC<TabsProps> = ({
-  items,
-  defaultTab,
-  className = "",
-  onChange
-}) => {
-  const [activeTab, setActiveTab] = useState(defaultTab || items[0]?.id);
+const TabsList = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.List>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.List>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.List
+    ref={ref}
+    className={cn(
+      "inline-flex h-9 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground",
+      className,
+    )}
+    {...props}
+  />
+));
+TabsList.displayName = TabsPrimitive.List.displayName;
 
-  const handleTabClick = (id: string) => {
-    setActiveTab(id);
-    if (onChange) onChange(id);
-  };
+const TabsTrigger = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Trigger>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Trigger>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Trigger
+    ref={ref}
+    className={cn(
+      "inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1 text-sm font-medium ring-offset-background cursor-pointer transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 disabled:cursor-not-allowed data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow",
+      className,
+    )}
+    {...props}
+  />
+));
+TabsTrigger.displayName = TabsPrimitive.Trigger.displayName;
 
-  const activeContent = items.find((item) => item.id === activeTab)?.content;
+const TabsContent = React.forwardRef<
+  React.ElementRef<typeof TabsPrimitive.Content>,
+  React.ComponentPropsWithoutRef<typeof TabsPrimitive.Content>
+>(({ className, ...props }, ref) => (
+  <TabsPrimitive.Content
+    ref={ref}
+    className={cn(
+      "mt-2 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+      className,
+    )}
+    {...props}
+  />
+));
+TabsContent.displayName = TabsPrimitive.Content.displayName;
 
-  return (
-    <div className={`space-y-6 w-full ${className}`}>
-      <div className="flex border-b border-[var(--border-light)] gap-2 overflow-x-auto select-none scrollbar-none">
-        {items.map((item) => {
-          const Icon = item.icon;
-          const isActive = item.id === activeTab;
-          
-          return (
-            <button
-              key={item.id}
-              onClick={() => handleTabClick(item.id)}
-              className={`relative flex items-center gap-2 px-4 py-3 text-sm font-semibold transition-all duration-200 focus:outline-none ${
-                isActive 
-                  ? "text-[#002B49] dark:text-slate-100 font-bold" 
-                  : "text-slate-500 hover:text-slate-800 dark:hover:text-slate-300"
-              }`}
-            >
-              {Icon && <Icon className="w-4 h-4" />}
-              <span>{item.label}</span>
-              {isActive && (
-                <motion.div
-                  layoutId="activeTabUnderline"
-                  className="absolute bottom-0 left-0 right-0 h-0.5 bg-accent"
-                  transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </div>
-      <motion.div
-        key={activeTab}
-        initial={{ opacity: 0, y: 6 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -6 }}
-        transition={{ duration: 0.2 }}
-        className="w-full"
-      >
-        {activeContent}
-      </motion.div>
-    </div>
-  );
-};
+export { Tabs, TabsList, TabsTrigger, TabsContent };

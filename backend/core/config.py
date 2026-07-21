@@ -14,9 +14,7 @@ class Settings:
     ENV: str = os.getenv("ENV", "development") # "development" or "production"
     
     # Database Settings
-    SQLITE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./intelli_credit.db")
-    # For PostgreSQL production fallback to SQLite if not specified
-    DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./intelli_credit.db")
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     
     # Security
     JWT_SECRET_KEY: str = os.getenv("JWT_SECRET_KEY", "supersecretkey")

@@ -8,6 +8,9 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     Guards against clickjacking, XSS attacks, MIME sniffing, and injection.
     """
     async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+            
         response: Response = await call_next(request)
         
         # Prevent Clickjacking

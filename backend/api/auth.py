@@ -16,6 +16,7 @@ from backend.security.auth_service import authenticate_user, register_new_user
 from backend.security.tokens import create_access_token, create_refresh_token, decode_token
 from backend.security.password import get_password_hash, validate_password_complexity
 from backend.repositories.entity_repositories import AuditRepository
+from backend.api.deps import get_current_user
 
 router = APIRouter(tags=["Authentication"])
 
@@ -184,3 +185,14 @@ def verify_email(token: str, req: Request, db: Session = Depends(get_db)):
     AuditRepository.log(db, user.id, user.username, "EMAIL_VERIFIED", "Account verified successfully.", ip, ua)
     
     return {"message": "Email address verified successfully."}
+
+@router.get("/me")
+def get_me(current_user: User = Depends(get_current_user)):
+    """Retrieve details of currently logged-in user"""
+    return {
+        "id": str(current_user.id),
+        "email": current_user.email,
+        "full_name": current_user.username,
+        "role": current_user.role,
+        "avatar_url": None
+    }

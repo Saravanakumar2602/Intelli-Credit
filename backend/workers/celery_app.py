@@ -1,4 +1,9 @@
 import os
+import sys
+
+# Ensure backend package is in python path
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
+
 from celery import Celery
 from backend.core.config import settings
 

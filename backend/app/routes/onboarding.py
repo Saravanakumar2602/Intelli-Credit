@@ -40,7 +40,7 @@ def submit_onboarding(
             detail="Invalid Permanent Account Number (PAN) format. Must be 10 characters matching Indian PAN standards."
         )
 
-    # Save to SQLite/PostgreSQL Database
+    # Save to database
     new_onboarding = OnboardingModel(
         cin=cin_clean,
         pan=pan_clean,
