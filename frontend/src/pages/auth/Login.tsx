@@ -34,7 +34,7 @@ export default function Login() {
     formState: { errors },
   } = useForm<FormValues>({
     resolver: zodResolver(schema),
-    defaultValues: { email: "", password: "", remember: true },
+    defaultValues: { email: "demo@bank.com", password: "demo123", remember: true },
   });
 
   useEffect(() => {
@@ -135,6 +135,14 @@ export default function Login() {
           <p className="mt-1 text-sm text-muted-foreground">
             Use your work email to access the underwriting workspace.
           </p>
+
+          <div className="mt-4 rounded-lg border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+            <span className="font-semibold text-foreground">Demo Credentials (Pre-filled):</span>
+            <div className="mt-1 flex flex-col gap-0.5">
+              <div>Email: <code className="text-primary font-mono select-all">demo@bank.com</code></div>
+              <div>Password: <code className="text-primary font-mono select-all">demo123</code></div>
+            </div>
+          </div>
 
           <form onSubmit={handleSubmit(onSubmit)} className="mt-8 space-y-4">
             <div className="space-y-1.5">
