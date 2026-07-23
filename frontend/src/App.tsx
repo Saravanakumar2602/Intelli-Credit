@@ -1,6 +1,6 @@
 import { lazy, Suspense } from "react";
 import { MemoryRouter, Navigate, Route, Routes } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
+import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -93,16 +93,7 @@ export default function App() {
             </Routes>
           </Suspense>
         </MemoryRouter>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: "hsl(var(--card))",
-              color: "hsl(var(--card-foreground))",
-              border: "1px solid hsl(var(--border))",
-            },
-          }}
-        />
+        <Toaster position="top-right" richColors closeButton />
       </AuthProvider>
     </TooltipProvider>
   );
