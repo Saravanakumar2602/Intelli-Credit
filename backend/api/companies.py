@@ -12,6 +12,14 @@ from backend.models.risk_report import RiskReport
 from backend.models.extracted_financials import ExtractedFinancials
 from backend.models.credit_appraisal_memo import CreditAppraisalMemo
 
+def _parse_turnover(turnover: str) -> float | None:
+    """Safely parse turnover string like '10 Cr' into a float."""
+    try:
+        cleaned = turnover.replace(" Cr", "").replace("Cr", "").strip()
+        return float(cleaned) * 10_000_000
+    except (ValueError, AttributeError):
+        return None
+
 router = APIRouter(prefix="/companies", tags=["Companies"])
 
 @router.get("/")
@@ -35,7 +43,7 @@ def list_companies(
             "industry": c.sector,
             "country": "India",
             "incorporation_date": c.created_at.strftime("%Y-%m-%d") if c.created_at else None,
-            "annual_revenue": float(c.turnover.replace(" Cr", "").replace("Cr", "").strip()) * 10000000 if "Cr" in c.turnover else None
+            "annual_revenue": _parse_turnover(c.turnover)
         })
         
     return {
@@ -63,7 +71,7 @@ def get_company(
         "industry": c.sector,
         "country": "India",
         "incorporation_date": c.created_at.strftime("%Y-%m-%d") if c.created_at else None,
-        "annual_revenue": float(c.turnover.replace(" Cr", "").replace("Cr", "").strip()) * 10000000 if "Cr" in c.turnover else None
+        "annual_revenue": _parse_turnover(c.turnover)
     }
 
 @router.get("/{id}/profile")
@@ -153,7 +161,7 @@ def get_company_profile(
     ]
 
     # Previous risk scores
-    previous_risk_scores = [{"at": datetime.utcnow().strftime("%Y-%m-%d"), "score": float(risk.overall_score)} if risk else {"at": "2026-07-01", "score": 38.0}]
+    previous_risk_scores = [{"at": datetime.now().strftime("%Y-%m-%d"), "score": float(risk.overall_score)} if risk else {"at": "2026-07-01", "score": 38.0}]
 
     return {
         "id": str(c.id),

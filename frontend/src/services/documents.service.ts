@@ -1,7 +1,18 @@
 import { api } from "./api";
 import { uploadService } from "./entities.service";
 import type { UploadedDocument } from "@/types";
-import type { DocumentPreviewMeta } from "./documents.service";
+
+export interface DocumentPreviewMeta {
+  id: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  page_count?: number;
+  uploaded_at: string;
+  uploaded_by?: string;
+  preview_url?: string;
+  download_url?: string;
+}
 
 export const documentsService = {
   async list(applicationId?: string): Promise<UploadedDocument[]> {
@@ -9,20 +20,8 @@ export const documentsService = {
   },
 
   async history(page = 1): Promise<UploadedDocument[]> {
-    // Queries search endpoint to find recently onboarded files
-    const { data } = await api.get(`/search/?page=${page}&limit=10`);
-    const results = data.results || [];
-    
-    // Format search hits into UploadedDocument type
-    return results.map((item: any) => ({
-      id: String(item.id),
-      application_id: String(item.id),
-      file_name: `${item.company_name.replace(/\s+/g, "_")}_Financials.pdf`,
-      file_size: 1024 * 1024 * 5, // 5MB mock size
-      mime_type: "application/pdf",
-      uploaded_at: item.created_at || new Date().toISOString(),
-      status: "ready",
-    }));
+    const { data } = await api.get(`/documents/?page=${page}&limit=20`);
+    return (data.items || []) as UploadedDocument[];
   },
 
   async get(id: string): Promise<DocumentPreviewMeta> {
@@ -35,7 +34,6 @@ export const documentsService = {
   },
 
   async replace(id: string, file: File): Promise<UploadedDocument> {
-    // Delete the previous document, then upload the replacement file
     try {
       await api.delete(`/documents/${id}`);
     } catch {

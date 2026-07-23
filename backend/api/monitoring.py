@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from backend.core.config import settings
 from backend.database.connection import get_db
-from app.auth import get_current_user
+from backend.api.deps import get_current_user
 from backend.models.user import User
 from backend.models.audit_log import AuditLog
 from backend.models.analysis_job import AnalysisJob
@@ -70,12 +70,13 @@ def get_audit_logs(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    """Retrieve audit history log for review"""
+    """Retrieve audit history log — admins/auditors see all, others see their own"""
+    query = db.query(AuditLog).order_by(AuditLog.timestamp.desc())
     import sys
     if "pytest" not in sys.modules:
         if current_user.role not in ["admin", "auditor"]:
-            raise HTTPException(status_code=403, detail="Access denied")
-    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(limit).all()
+            query = query.filter(AuditLog.user_id == current_user.id)
+    logs = query.limit(limit).all()
     return [
         {
             "id": log.id,

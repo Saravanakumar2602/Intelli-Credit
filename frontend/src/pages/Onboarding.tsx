@@ -3,8 +3,10 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, Loader2 } from "lucide-react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
+import { companyService } from "@/services/entities.service";
 
 import { PageHeader } from "@/components/app/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -61,11 +63,16 @@ export default function Onboarding() {
     if (ok) setStep((s) => Math.min(s + 1, STEPS.length - 1));
   };
 
-  const onSubmit = async (_values: FormValues) => {
+  const navigate = useNavigate();
+
+  const onSubmit = async (values: FormValues) => {
     setSubmitting(true);
     try {
-      // await companyService.create(values); — wire when backend is up.
-      toast.success("Application draft saved");
+      await companyService.create(values);
+      toast.success("Application submitted successfully");
+      navigate("/applications");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail ?? "Submission failed. Please try again.");
     } finally {
       setSubmitting(false);
     }

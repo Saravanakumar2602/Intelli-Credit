@@ -41,15 +41,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [isBootstrapping, setIsBootstrapping] = useState(true);
 
-  // Rehydrate on mount.
+  // Rehydrate on mount — validate stored token against backend.
   useEffect(() => {
     const stored = window.localStorage.getItem(TOKEN_STORAGE_KEY);
     if (stored) {
       setToken(stored);
-      // In dev / no-backend mode we synthesize a user profile so protected
-      // routes render. Replace with authService.me() once backend is up.
       const cached = window.localStorage.getItem("ic.auth.user");
-      setUser(cached ? (JSON.parse(cached) as User) : DEV_USER);
+      if (cached) {
+        setUser(JSON.parse(cached) as User);
+      }
+      authService.me().then((me) => {
+        setUser(me);
+        window.localStorage.setItem("ic.auth.user", JSON.stringify(me));
+      }).catch(() => {
+        // Token is invalid/expired — clear session
+        window.localStorage.removeItem(TOKEN_STORAGE_KEY);
+        window.localStorage.removeItem(REFRESH_STORAGE_KEY);
+        window.localStorage.removeItem("ic.auth.user");
+        setToken(null);
+        setUser(null);
+      });
     }
     setIsBootstrapping(false);
   }, []);
@@ -66,29 +77,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (payload: LoginRequest) => {
-    // When backend is wired, this uses authService.login.
-    // For now we synthesize a session so the UI is fully explorable.
-    try {
-      const tokens = await authService.login(payload);
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, tokens.access_token);
-      if (tokens.refresh_token) {
-        window.localStorage.setItem(REFRESH_STORAGE_KEY, tokens.refresh_token);
-      }
-      const me = await authService.me();
-      window.localStorage.setItem("ic.auth.user", JSON.stringify(me));
-      setToken(tokens.access_token);
-      setUser(me);
-    } catch (err) {
-      // Preview fallback: allow entering the app in UI-only mode.
-      const previewToken = "preview-token";
-      const previewUser: User = { ...DEV_USER, email: payload.email || DEV_USER.email };
-      window.localStorage.setItem(TOKEN_STORAGE_KEY, previewToken);
-      window.localStorage.setItem("ic.auth.user", JSON.stringify(previewUser));
-      setToken(previewToken);
-      setUser(previewUser);
-      // Surface real error only once wiring exists; swallow in UI-only mode.
-      void err;
+    const tokens = await authService.login(payload);
+    window.localStorage.setItem(TOKEN_STORAGE_KEY, tokens.access_token);
+    if (tokens.refresh_token) {
+      window.localStorage.setItem(REFRESH_STORAGE_KEY, tokens.refresh_token);
     }
+    const me = await authService.me();
+    window.localStorage.setItem("ic.auth.user", JSON.stringify(me));
+    setToken(tokens.access_token);
+    setUser(me);
   }, []);
 
   const logout = useCallback(() => {

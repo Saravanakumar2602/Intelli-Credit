@@ -31,6 +31,25 @@ def get_cam_details(
     comp = db.query(Company).filter(Company.id == loan.company_id).first()
     company_name = comp.name if comp else "Unknown"
 
+    from backend.models.extracted_financials import ExtractedFinancials
+    from backend.models.risk_report import RiskReport
+
+    financials = db.query(ExtractedFinancials).filter(ExtractedFinancials.loan_application_id == memo.loan_application_id).first()
+    risk = db.query(RiskReport).filter(RiskReport.loan_application_id == memo.loan_application_id).first()
+
+    financial_content = "No financial data available."
+    if financials and financials.ratios_data:
+        ratio_lines = ", ".join(
+            f"{k.replace('_', ' ').title()}: {round(float(v), 2)}"
+            for k, v in financials.ratios_data.items()
+            if isinstance(v, (int, float))
+        )
+        financial_content = f"Computed credit ratios: {ratio_lines}." if ratio_lines else "Ratios computed but no numeric values found."
+
+    risk_content = "No risk assessment data available."
+    if risk:
+        risk_content = risk.explanation or f"Overall risk score: {risk.overall_score} ({risk.risk_level})."
+
     sections = [
         {
             "key": "executive_summary",
@@ -40,12 +59,12 @@ def get_cam_details(
         {
             "key": "financial_analysis",
             "title": "2. Financial Profile & Ratios Analysis",
-            "content": "Calculated ratios show healthy operating margins. Debt Service Coverage Ratio (DSCR) remains in comfortable bounds."
+            "content": financial_content
         },
         {
             "key": "risk_assessment",
             "title": "3. Risk Evaluation & Mitigation",
-            "content": "Overall rating score calculated. Moderate risks are mitigated by corporate collateral charges."
+            "content": risk_content
         }
     ]
 

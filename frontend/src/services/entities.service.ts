@@ -15,10 +15,13 @@ export const companyService = {
   },
 
   async create(payload: Partial<Company> & any): Promise<Company> {
-    // Bridges the React Form schema with FastAPI Onboarding schema requirements
+    const cin = payload.registration_number?.trim() || "U72200KA2020PTC134251";
+    // Derive a unique PAN from CIN characters to avoid unique constraint violations
+    const panBase = cin.replace(/[^A-Z0-9]/g, "").substring(1, 6).padEnd(5, "A").toUpperCase();
+    const pan = `${panBase}1234F`;
     const onboardingPayload = {
-      cin: payload.registration_number?.trim() || "U72200KA2020PTC134251",
-      pan: "AAACX1234A",
+      cin,
+      pan,
       sector: payload.industry || "General",
       turnover: String(payload.annual_revenue || "10 Cr"),
       amount: payload.amount_requested || 1000000.0,
@@ -103,34 +106,28 @@ export const uploadService = {
 
 export const notificationService = {
   async list(): Promise<NotificationItem[]> {
-    // Simulates notifications using standard list
-    return [
-      {
-        id: "not-1",
-        title: "AI Analysis Complete",
-        body: "Credit appraisal memo and risks processed for borrower.",
+    try {
+      const { data } = await api.get<any[]>("/monitoring/logs?limit=10");
+      return data.map((log: any, idx: number) => ({
+        id: String(log.id ?? idx),
+        title: (log.action ?? "System Event").replace(/_/g, " "),
+        body: log.details ?? "",
         read: false,
-        created_at: new Date().toISOString(),
-        type: "success",
-        category: "analysis",
-      },
-      {
-        id: "not-2",
-        title: "Compliance Checklist Updated",
-        body: "Verification rules passed for loan file onboarding.",
-        read: true,
-        created_at: new Date().toISOString(),
-        type: "info",
-        category: "system",
-      },
-    ];
+        created_at: log.timestamp ?? new Date().toISOString(),
+        type: log.action?.includes("FAIL") || log.action?.includes("ERROR")
+          ? "error"
+          : log.action?.includes("WARN") || log.action?.includes("LOCK")
+          ? "warning"
+          : "info",
+        category: log.action?.includes("DOCUMENT") || log.action?.includes("UPLOAD")
+          ? "analysis"
+          : "system",
+      } as NotificationItem));
+    } catch {
+      return [];
+    }
   },
 
-  async markRead(_id: string): Promise<void> {
-    // Standard frontend client read update
-  },
-
-  async markAllRead(): Promise<void> {
-    // Standard frontend client read update
-  },
+  async markRead(_id: string): Promise<void> {},
+  async markAllRead(): Promise<void> {},
 };

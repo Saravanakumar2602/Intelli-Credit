@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, ForeignKey, String, DateTime, JSON, Float
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class CreditAppraisalMemo(Base):
     __tablename__ = "credit_appraisal_memos"
@@ -16,4 +19,4 @@ class CreditAppraisalMemo(Base):
     recommendation_summary = Column(String, nullable=True)
     citations_data = Column(JSON, nullable=True) # Page numbers and paragraph quotes
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)

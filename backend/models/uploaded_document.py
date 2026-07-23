@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class UploadedDocument(Base):
     __tablename__ = "uploaded_documents"
@@ -19,4 +22,4 @@ class UploadedDocument(Base):
     is_encrypted = Column(Boolean, default=False, nullable=False)
     encryption_key_hash = Column(String, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)

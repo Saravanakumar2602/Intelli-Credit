@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from backend.database.connection import get_db
@@ -64,12 +64,17 @@ def signup(request: SignupRequest, req: Request, db: Session = Depends(get_db)):
     
     return {"message": "Account created successfully. Please login."}
 
+from pydantic import BaseModel as _BaseModel
+class _RefreshRequest(_BaseModel):
+    refresh_token: str
+
 @router.post("/refresh/", response_model=Token)
-def rotate_refresh_token(refresh_token: str, req: Request, db: Session = Depends(get_db)):
+def rotate_refresh_token(body: _RefreshRequest, req: Request, db: Session = Depends(get_db)):
     """
     Refresh access token using token rotation.
     Decodes the refresh token, verifies it, and issues a new access & refresh token pair.
     """
+    refresh_token = body.refresh_token
     ip = req.client.host if req.client else "unknown"
     ua = req.headers.get("user-agent", "unknown")
     
@@ -120,14 +125,17 @@ def request_password_reset(request: PasswordResetRequest, req: Request, db: Sess
         import secrets
         token = secrets.token_urlsafe(32)
         user.reset_token = token
-        user.reset_token_expires = datetime.utcnow() + timedelta(hours=1)
+        user.reset_token_expires = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=1)
         db.commit()
         
         # Log audit action
         AuditRepository.log(db, user.id, user.username, "RESET_REQUESTED", "Initiated password reset request.", ip, ua)
-        
-        # In a real app, send an email. For demo/underwriting, we return the token
-        return {"message": "Password reset token generated.", "token": token}
+
+        import os
+        if os.getenv("ENV", "development") == "development":
+            # Only expose token in dev/demo mode — never in production
+            return {"message": "Password reset token generated.", "token": token}
+        return {"message": "If the email exists, a password reset link has been sent."}
         
     return {"message": "If the email exists, a password reset token has been generated."}
 
@@ -139,7 +147,7 @@ def confirm_password_reset(request: PasswordResetConfirm, req: Request, db: Sess
     
     user = db.query(User).filter(
         User.reset_token == request.token,
-        User.reset_token_expires > datetime.utcnow()
+        User.reset_token_expires > datetime.now(timezone.utc).replace(tzinfo=None)
     ).first()
     
     if not user:

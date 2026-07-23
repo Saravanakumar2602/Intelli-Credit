@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class Company(Base):
     __tablename__ = "companies"
@@ -12,5 +15,5 @@ class Company(Base):
     sector = Column(String, index=True, nullable=False)
     turnover = Column(String, nullable=False) # e.g. "10-50 Cr"
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)

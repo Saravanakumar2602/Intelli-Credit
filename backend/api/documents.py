@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 import os
 
@@ -9,6 +9,36 @@ from backend.models.uploaded_document import UploadedDocument
 from backend.repositories.entity_repositories import AuditRepository
 
 router = APIRouter(prefix="/documents", tags=["Documents"])
+
+@router.get("/")
+def list_documents(
+    loan_application_id: int = None,
+    page: int = 1,
+    limit: int = 20,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """List uploaded documents, optionally filtered by loan application"""
+    query = db.query(UploadedDocument)
+    if loan_application_id:
+        query = query.filter(UploadedDocument.loan_application_id == loan_application_id)
+    total = query.count()
+    docs = query.order_by(UploadedDocument.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
+    return {
+        "total": total,
+        "items": [
+            {
+                "id": str(doc.id),
+                "application_id": str(doc.loan_application_id),
+                "file_name": doc.original_filename,
+                "file_size": doc.file_size,
+                "mime_type": doc.mime_type,
+                "uploaded_at": doc.created_at.isoformat() + "Z",
+                "status": "ready"
+            }
+            for doc in docs
+        ]
+    }
 
 @router.get("/{id}")
 def get_document_metadata(
@@ -39,6 +69,7 @@ def get_document_metadata(
 @router.delete("/{id}")
 def delete_document(
     id: int,
+    request: Request,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
@@ -65,8 +96,8 @@ def delete_document(
         username=current_user.username,
         action="DELETE_DOCUMENT",
         details=f"Deleted document {doc.original_filename} (ID: {id})",
-        ip="localhost",
-        ua="FastAPI"
+        ip=request.client.host if request.client else "unknown",
+        ua=request.headers.get("user-agent", "unknown")
     )
     
     return {"message": "Document deleted successfully"}

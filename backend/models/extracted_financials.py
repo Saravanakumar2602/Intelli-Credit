@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, ForeignKey, JSON, DateTime, String
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class ExtractedFinancials(Base):
     __tablename__ = "extracted_financials"
@@ -16,5 +19,5 @@ class ExtractedFinancials(Base):
     
     extracted_by = Column(String, default="AI_AGENT", nullable=False) # AI_AGENT, MANUAL
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)

@@ -22,9 +22,12 @@ def generate_cam(
     Saves the file to settings.UPLOAD_DIR and returns the filepath.
     """
     try:
-        os.makedirs("uploads", exist_ok=True)
+        from backend.core.config import settings
+        upload_dir = settings.UPLOAD_DIR
+        os.makedirs(upload_dir, exist_ok=True)
         sanitized_company = "".join(c for c in company if c.isalnum() or c in (" ", "_", "-")).strip().replace(" ", "_")
-        file_path = f"uploads/{sanitized_company}_CAM.pdf"
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        file_path = os.path.join(upload_dir, f"{sanitized_company}_{timestamp}_CAM.pdf")
         
         # 0.5-inch margins for dense financial layout
         doc = SimpleDocTemplate(

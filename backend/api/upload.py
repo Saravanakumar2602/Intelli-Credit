@@ -1,11 +1,11 @@
 import os
 import uuid
 from typing import Optional
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from backend.core.config import settings
 from backend.database.connection import get_db
-from app.auth import get_current_user
+from backend.api.deps import get_current_user
 from backend.models.user import User
 from backend.models.uploaded_document import UploadedDocument
 from backend.security.file_security import validate_uploaded_file, verify_file_path, encrypt_decrypt_bytes
@@ -15,6 +15,7 @@ router = APIRouter(prefix="/upload", tags=["Upload Documents"])
 
 @router.post("/")
 async def upload_files(
+    req: Request,
     loan_application_id: Optional[int] = Form(None),
     company: Optional[str] = Form(None),
     alm: UploadFile = File(...),
@@ -141,8 +142,8 @@ async def upload_files(
         username=current_user.username,
         action="UPLOAD_DOCUMENTS",
         details=f"Uploaded {len(files)} files for loan application {loan_id}.",
-        ip="localhost",
-        ua="FastAPI-Upload"
+        ip=req.client.host if req.client else "unknown",
+        ua=req.headers.get("user-agent", "unknown")
     )
     
     return {
@@ -152,6 +153,7 @@ async def upload_files(
 
 @router.post("/file")
 async def upload_single_file(
+    req: Request,
     file: UploadFile = File(...),
     loan_application_id: Optional[int] = Form(None),
     db: Session = Depends(get_db),
@@ -246,8 +248,8 @@ async def upload_single_file(
         username=current_user.username,
         action="UPLOAD_SINGLE_DOCUMENT",
         details=f"Uploaded single document {file.filename} (category: {category}) for loan {loan_id}.",
-        ip="localhost",
-        ua="FastAPI"
+        ip=req.client.host if req.client else "unknown",
+        ua=req.headers.get("user-agent", "unknown")
     )
     
     return {

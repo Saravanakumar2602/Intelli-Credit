@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, Float, ForeignKey, DateTime
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class LoanApplication(Base):
     __tablename__ = "loan_applications"
@@ -16,5 +19,5 @@ class LoanApplication(Base):
     
     status = Column(String, default="SUBMITTED", nullable=False) # SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, CONDITIONAL
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)

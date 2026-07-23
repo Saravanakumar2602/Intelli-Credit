@@ -7,7 +7,7 @@ def test_signup_success(client):
     name = f"New User {suffix}"
     response = client.post(
         "/signup/",
-        json={"email": email, "password": "password123", "name": name}
+        json={"email": email, "password": "Secure@1234", "name": name}
     )
     assert response.status_code == 200
     assert response.json()["message"] == "Account created successfully. Please login."

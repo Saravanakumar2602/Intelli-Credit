@@ -2,9 +2,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 from typing import Optional
 from backend.database.connection import get_db
-from app.auth import get_current_user
+from backend.api.deps import get_current_user
 from backend.models.user import User
 from backend.repositories.entity_repositories import LoanRepository
+from backend.models.risk_report import RiskReport
 
 router = APIRouter(prefix="/search", tags=["Global Search"])
 
@@ -40,6 +41,7 @@ def global_search(
         company_cin = company.cin if company else ""
         company_sector = company.sector if company else ""
         
+        risk = db.query(RiskReport).filter(RiskReport.loan_application_id == loan.id).first()
         results.append({
             "id": loan.id,
             "company_name": company_name,
@@ -50,7 +52,8 @@ def global_search(
             "interest_rate": loan.interest_rate,
             "loan_type": loan.loan_type,
             "status": loan.status,
-            "created_at": loan.created_at
+            "created_at": loan.created_at,
+            "risk_score": risk.overall_score if risk else None
         })
         
     return {

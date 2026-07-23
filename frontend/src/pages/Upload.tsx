@@ -1,7 +1,8 @@
 import { useCallback, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { toast } from "sonner";
 import {
   Eye,
   File as FileIcon,
@@ -24,6 +25,7 @@ import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { documentsService } from "@/services/documents.service";
+import { uploadService } from "@/services/entities.service";
 import { cn } from "@/lib/utils";
 
 interface QueuedFile {
@@ -67,27 +69,23 @@ export default function Upload() {
     });
     setFiles((prev) => [...prev, ...arr]);
 
-    arr.filter((q) => q.status === "queued").forEach((qf) => runUpload(qf.id));
+    arr.filter((q) => q.status === "queued").forEach((qf) => runUpload(qf.id, qf.file));
   }, []);
 
-  const runUpload = (id: string) => {
-    setFiles((prev) => prev.map((p) => (p.id === id ? { ...p, status: "uploading", progress: 0, error: undefined } : p)));
-    const iv = setInterval(() => {
-      setFiles((prev) => {
-        const target = prev.find((p) => p.id === id);
-        if (!target) {
-          clearInterval(iv);
-          return prev;
-        }
-        const next = Math.min(100, target.progress + 12);
-        if (next >= 100) {
-          clearInterval(iv);
-          return prev.map((p) => (p.id === id ? { ...p, progress: 100, status: "ready" } : p));
-        }
-        return prev.map((p) => (p.id === id ? { ...p, progress: next } : p));
-      });
-    }, 180);
-  };
+  const qc = useQueryClient();
+
+  const runUpload = useCallback((id: string, file: File) => {
+    setFiles((prev) => prev.map((p) => (p.id === id ? { ...p, status: "uploading", progress: 10, error: undefined } : p)));
+    uploadService.upload(file).then(() => {
+      setFiles((prev) => prev.map((p) => (p.id === id ? { ...p, progress: 100, status: "ready" } : p)));
+      qc.invalidateQueries({ queryKey: ["documents.history"] });
+      toast.success(`${file.name} uploaded successfully`);
+    }).catch((err: any) => {
+      const msg = err?.response?.data?.detail ?? "Upload failed";
+      setFiles((prev) => prev.map((p) => (p.id === id ? { ...p, status: "failed", error: msg } : p)));
+      toast.error(msg);
+    });
+  }, [qc]);
 
   const onDrop = (e: React.DragEvent) => {
     e.preventDefault();
@@ -104,7 +102,7 @@ export default function Upload() {
       if (input.files?.[0]) {
         const f = input.files[0];
         setFiles((prev) => prev.map((p) => (p.id === id ? { ...p, file: f, progress: 0, status: "queued", error: undefined } : p)));
-        runUpload(id);
+        runUpload(id, f);
       }
     };
     input.click();
@@ -199,7 +197,7 @@ export default function Upload() {
                 <StatusBadge status={qf.status} />
                 <div className="flex items-center gap-1">
                   {qf.status === "failed" && (
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => runUpload(qf.id)} aria-label="Retry">
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => runUpload(qf.id, qf.file)} aria-label="Retry">
                       <RefreshCw className="h-4 w-4" />
                     </Button>
                   )}

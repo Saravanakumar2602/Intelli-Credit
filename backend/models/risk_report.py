@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, ForeignKey, JSON, DateTime, String, Float
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class RiskReport(Base):
     __tablename__ = "risk_reports"
@@ -17,4 +20,4 @@ class RiskReport(Base):
     
     explanation = Column(String, nullable=True) # Text reasoning
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)

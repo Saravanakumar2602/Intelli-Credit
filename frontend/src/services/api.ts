@@ -6,7 +6,7 @@ import axios, { AxiosError, type InternalAxiosRequestConfig } from "axios";
  * Backend base URL is read from VITE_API_URL at build time.
  */
 export const API_BASE_URL: string =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000";
+  (import.meta.env.VITE_API_URL as string | undefined) ?? "http://localhost:8000/api/v1";
 
 export const TOKEN_STORAGE_KEY = "ic.auth.token";
 export const REFRESH_STORAGE_KEY = "ic.auth.refresh";

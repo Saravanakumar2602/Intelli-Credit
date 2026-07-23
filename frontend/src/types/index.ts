@@ -124,6 +124,24 @@ export interface DashboardData {
   activity: Array<{ id: string; actor: string; action: string; at: string }>;
 }
 
+export interface DashboardExtras {
+  heatmap: Array<{ industry: string; band: string; count: number; exposure: number }>;
+  funnel: Array<{ stage: string; count: number }>;
+  officers: Array<{
+    id: string;
+    name: string;
+    role: string;
+    avatar_url: string | null;
+    applications: number;
+    approval_rate: number;
+    avg_risk: number;
+  }>;
+  monthly: Array<{ month: string; applications: number; approved: number; declined: number; avg_risk: number }>;
+  insights: Array<{ id: string; title: string; detail: string; severity: string; suggested_action?: string }>;
+  recent_cams: CAMDocument[];
+  recent_analyses: AnalysisResult[];
+}
+
 export interface CAMDocument {
   id: string;
   application_id: string;
@@ -148,6 +166,16 @@ export interface NotificationItem {
   created_at: string;
   type: "info" | "success" | "warning" | "error";
   category?: "analysis" | "reports" | "system" | "mention";
+}
+
+export interface DashboardExtras {
+  heatmap: Array<{ industry: string; band: string; count: number; exposure?: number }>;
+  funnel: Array<{ stage: string; count: number }>;
+  officers: Array<{ id: string; name: string; role?: string; avatar_url?: string | null; applications: number; approval_rate: number; avg_risk: number }>;
+  monthly: Array<{ month: string; applications: number; approved: number; declined: number; avg_risk: number }>;
+  insights: Array<{ id: string; title: string; detail: string; severity: "info" | "warning" | "critical" | "success"; suggested_action?: string }>;
+  recent_cams: CAMDocument[];
+  recent_analyses: AnalysisResult[];
 }
 
 export interface Paginated<T> {

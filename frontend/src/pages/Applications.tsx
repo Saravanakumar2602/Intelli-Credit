@@ -22,9 +22,13 @@ import { applicationService } from "@/services/entities.service";
 
 const STATUS_TONE: Record<string, string> = {
   draft: "bg-secondary text-muted-foreground",
+  submitted: "bg-secondary text-muted-foreground",
   in_review: "bg-primary/15 text-primary",
+  under_review: "bg-primary/15 text-primary",
   analyzing: "bg-warning/15 text-warning",
+  conditional: "bg-warning/15 text-warning",
   approved: "bg-success/15 text-success",
+  rejected: "bg-destructive/15 text-destructive",
   declined: "bg-destructive/15 text-destructive",
 };
 

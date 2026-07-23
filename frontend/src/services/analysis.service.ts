@@ -16,14 +16,14 @@ export const analysisService = {
   async list(page = 1, pageSize = 20): Promise<Paginated<AnalysisResult>> {
     const { data } = await api.get(`/search/?page=${page}&limit=${pageSize}`);
     const results = data.results || [];
-    
+
     const items = results.map((item: any) => ({
       id: String(item.id),
       application_id: String(item.id),
       company_name: item.company_name,
       created_at: item.created_at || new Date().toISOString(),
       status: item.status === "APPROVED" || item.status === "REJECTED" ? "completed" : "running",
-      risk_score: 42.0,
+      risk_score: item.risk_score ?? undefined,
     }));
 
     return {
@@ -40,8 +40,7 @@ export const analysisService = {
 
   async get(id: string): Promise<AnalysisResult> {
     const { data } = await api.get(`/analyze/results/${id}`);
-    
-    // Dynamically map backend ratios dict into frontend array
+    // id here is loan_application_id
     const ratios: FinancialRatio[] = [];
     if (data.ratios) {
       Object.entries(data.ratios).forEach(([key, val]) => {
@@ -59,9 +58,16 @@ export const analysisService = {
     if (data.swot) {
       Object.entries(data.swot).forEach(([category, list]) => {
         if (Array.isArray(list)) {
+          const cat = category.toLowerCase();
+          const mapped =
+            cat === "strengths" ? "strengths" :
+            cat === "weaknesses" ? "weaknesses" :
+            cat === "opportunities" ? "opportunities" :
+            cat === "threats" ? "threats" : null;
+          if (!mapped) return;
           list.forEach((item: any) => {
             swot.push({
-              category: category.toLowerCase().slice(0, -1) as any, // strip plural 's'
+              category: mapped as SwotItem["category"],
               text: item.point || item.detail || item.text || String(item),
             });
           });
@@ -93,8 +99,8 @@ export const analysisService = {
       company_name: data.swot?.company || "Onboarded Borrower",
       created_at: new Date().toISOString(),
       status: "completed",
-      risk_score: data.risk?.score || 42,
-      confidence: data.recommendation?.confidence || 85,
+      risk_score: data.risk?.score ?? undefined,
+      confidence: data.recommendation?.confidence ?? undefined,
       executive_summary: data.recommendation?.recommendation_summary || data.risk_summary,
       ratios,
       swot,

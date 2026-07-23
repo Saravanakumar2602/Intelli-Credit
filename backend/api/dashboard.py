@@ -95,7 +95,7 @@ def get_dashboard_overview(
     recent_analyses = []
     for report, loan, comp in recent_reports:
         recent_analyses.append({
-            "id": str(report.id),
+            "id": str(loan.id),
             "application_id": str(loan.id),
             "company_name": comp.name,
             "created_at": report.created_at.isoformat() + "Z",
@@ -117,7 +117,7 @@ def get_dashboard_overview(
     ]
     if not activity:
         activity = [
-            {"id": "act-1", "actor": "Demo User", "action": "Signed in successfully", "at": datetime.utcnow().isoformat() + "Z"}
+            {"id": "act-1", "actor": "Demo User", "action": "Signed in successfully", "at": datetime.now().isoformat() + "Z"}
         ]
 
     return {
@@ -143,13 +143,36 @@ def get_dashboard_extras(
     current_user: User = Depends(get_current_user)
 ):
     """Retrieve supplementary visualization data for dashboard"""
-    # Heatmap
+    from sqlalchemy import extract
+    from backend.models.user import User as UserModel
+
+    # Heatmap — computed from real risk reports joined with company sectors
+    heatmap_raw = db.query(Company.sector, RiskReport.overall_score, LoanApplication.amount).\
+        join(LoanApplication, Company.id == LoanApplication.company_id).\
+        join(RiskReport, RiskReport.loan_application_id == LoanApplication.id).all()
+
+    heatmap_map: dict = {}
+    for sector, score, amount in heatmap_raw:
+        sector = sector or "General"
+        if score <= 25:
+            band = "0-25"
+        elif score <= 50:
+            band = "25-50"
+        elif score <= 75:
+            band = "50-75"
+        else:
+            band = "75-100"
+        key = (sector, band)
+        if key not in heatmap_map:
+            heatmap_map[key] = {"count": 0, "exposure": 0.0}
+        heatmap_map[key]["count"] += 1
+        heatmap_map[key]["exposure"] = round(heatmap_map[key]["exposure"] + float(amount or 0) / 1e7, 2)
+
     heatmap = [
-        {"industry": "Infrastructure", "band": "0-25", "count": 1, "exposure": 12.0},
-        {"industry": "Infrastructure", "band": "25-50", "count": 2, "exposure": 28.0},
-        {"industry": "Technology", "band": "0-25", "count": 3, "exposure": 15.0},
-        {"industry": "Healthcare", "band": "25-50", "count": 1, "exposure": 8.0},
-        {"industry": "Manufacturing", "band": "50-75", "count": 2, "exposure": 18.5}
+        {"industry": k[0], "band": k[1], "count": v["count"], "exposure": v["exposure"]}
+        for k, v in heatmap_map.items()
+    ] or [
+        {"industry": "General", "band": "25-50", "count": 0, "exposure": 0.0}
     ]
 
     # Funnel
@@ -160,24 +183,65 @@ def get_dashboard_extras(
         {"stage": "Decisioned", "count": db.query(LoanApplication).filter(LoanApplication.status.in_(["APPROVED", "REJECTED"])).count()}
     ]
 
-    # Officers statistics
-    officers = [
-        {
-            "id": "1",
-            "name": "Demo User",
-            "role": "credit_officer",
+    # Officers statistics — computed from DB
+    officers_db = db.query(UserModel).filter(UserModel.role.in_(["credit_officer", "admin"])).all()
+    officers = []
+    for officer in officers_db:
+        app_count = db.query(LoanApplication).filter(LoanApplication.officer_id == officer.id).count()
+        approved = db.query(LoanApplication).filter(
+            LoanApplication.officer_id == officer.id,
+            LoanApplication.status == "APPROVED"
+        ).count()
+        total_for_rate = db.query(LoanApplication).filter(
+            LoanApplication.officer_id == officer.id,
+            LoanApplication.status.in_(["APPROVED", "REJECTED"])
+        ).count()
+        avg_risk_raw = db.query(func.avg(RiskReport.overall_score)).\
+            join(LoanApplication, RiskReport.loan_application_id == LoanApplication.id).\
+            filter(LoanApplication.officer_id == officer.id).scalar()
+        officers.append({
+            "id": str(officer.id),
+            "name": officer.username,
+            "role": officer.role,
             "avatar_url": None,
-            "applications": db.query(LoanApplication).filter(LoanApplication.officer_id == 1).count() or 5,
-            "approval_rate": 80.0,
-            "avg_risk": 42.0
-        }
-    ]
+            "applications": app_count,
+            "approval_rate": round(approved / total_for_rate * 100, 1) if total_for_rate > 0 else 0.0,
+            "avg_risk": round(float(avg_risk_raw), 1) if avg_risk_raw else 0.0
+        })
 
-    # Monthly Trends
+    # Monthly Trends — computed in-memory, compatible with SQLite and PostgreSQL
+    all_loans = db.query(LoanApplication).all()
+    monthly_map: dict = {}
+    for loan in all_loans:
+        if loan.created_at:
+            month_key = loan.created_at.strftime("%b")
+            if month_key not in monthly_map:
+                monthly_map[month_key] = {"applications": 0, "approved": 0, "declined": 0, "risk_scores": []}
+            monthly_map[month_key]["applications"] += 1
+            if loan.status == "APPROVED":
+                monthly_map[month_key]["approved"] += 1
+            elif loan.status == "REJECTED":
+                monthly_map[month_key]["declined"] += 1
+
+    # Attach avg risk scores
+    all_risks = db.query(RiskReport, LoanApplication).join(LoanApplication, RiskReport.loan_application_id == LoanApplication.id).all()
+    for risk, loan in all_risks:
+        if loan.created_at:
+            month_key = loan.created_at.strftime("%b")
+            if month_key in monthly_map:
+                monthly_map[month_key]["risk_scores"].append(risk.overall_score)
+
     monthly = [
-        {"month": "Feb", "applications": 4, "approved": 2, "declined": 1, "avg_risk": 45.0},
-        {"month": "Mar", "applications": 6, "approved": 4, "declined": 0, "avg_risk": 38.0},
-        {"month": "Apr", "applications": 8, "approved": 5, "declined": 2, "avg_risk": 42.0}
+        {
+            "month": month,
+            "applications": v["applications"],
+            "approved": v["approved"],
+            "declined": v["declined"],
+            "avg_risk": round(sum(v["risk_scores"]) / len(v["risk_scores"]), 1) if v["risk_scores"] else 0.0
+        }
+        for month, v in monthly_map.items()
+    ] or [
+        {"month": datetime.now().strftime("%b"), "applications": 0, "approved": 0, "declined": 0, "avg_risk": 0.0}
     ]
 
     # Executive Insights

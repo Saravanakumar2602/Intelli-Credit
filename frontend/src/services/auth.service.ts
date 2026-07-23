@@ -25,9 +25,9 @@ export const authService = {
   },
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
-    const { data } = await api.post<AuthTokens>(
-      `/auth/refresh/?refresh_token=${encodeURIComponent(refreshToken)}`,
-    );
+    const { data } = await api.post<AuthTokens>("/auth/refresh/", {
+      refresh_token: refreshToken,
+    });
     return data;
   },
 };

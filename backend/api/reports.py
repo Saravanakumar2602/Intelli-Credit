@@ -21,12 +21,40 @@ def get_reports_snapshot(
     current_user: User = Depends(get_current_user)
 ):
     """Retrieve portfolio reports snapshot statistics"""
-    # 1. Monthly reports
+    # 1. Monthly reports — computed from DB
+    all_loans = db.query(LoanApplication).all()
+    monthly_map: dict = {}
+    for loan in all_loans:
+        if loan.created_at:
+            month_key = loan.created_at.strftime("%b")
+            if month_key not in monthly_map:
+                monthly_map[month_key] = {"applications": 0, "approved": 0, "declined": 0, "risk_scores": []}
+            monthly_map[month_key]["applications"] += 1
+            if loan.status == "APPROVED":
+                monthly_map[month_key]["approved"] += 1
+            elif loan.status == "REJECTED":
+                monthly_map[month_key]["declined"] += 1
+
+    all_risks = db.query(RiskReport, LoanApplication).join(
+        LoanApplication, RiskReport.loan_application_id == LoanApplication.id
+    ).all()
+    for risk, loan in all_risks:
+        if loan.created_at:
+            month_key = loan.created_at.strftime("%b")
+            if month_key in monthly_map:
+                monthly_map[month_key]["risk_scores"].append(risk.overall_score)
+
+    from datetime import datetime as _dt
     monthly = [
-        {"month": "Feb", "applications": 4, "approved": 2, "declined": 1, "avg_risk": 45.0},
-        {"month": "Mar", "applications": 6, "approved": 4, "declined": 0, "avg_risk": 38.0},
-        {"month": "Apr", "applications": 8, "approved": 5, "declined": 2, "avg_risk": 42.0}
-    ]
+        {
+            "month": month,
+            "applications": v["applications"],
+            "approved": v["approved"],
+            "declined": v["declined"],
+            "avg_risk": round(sum(v["risk_scores"]) / len(v["risk_scores"]), 1) if v["risk_scores"] else 0.0
+        }
+        for month, v in monthly_map.items()
+    ] or [{"month": _dt.now().strftime("%b"), "applications": 0, "approved": 0, "declined": 0, "avg_risk": 0.0}]
 
     # 2. Industry sector breakdown
     industries_db = db.query(
@@ -42,11 +70,14 @@ def get_reports_snapshot(
         sector_name = sector or "General"
         exp_val = float(exposure) if exposure is not None else 0.0
         
-        # Calculate mock approved count
+        approved_count_sector = db.query(LoanApplication).join(Company, Company.id == LoanApplication.company_id).filter(
+            Company.sector == sector,
+            LoanApplication.status == "APPROVED"
+        ).count()
         industry_breakdown.append({
             "industry": sector_name,
             "applications": count,
-            "approved": count,  # Default to count
+            "approved": approved_count_sector,
             "exposure": exp_val
         })
         portfolio_exposure.append({

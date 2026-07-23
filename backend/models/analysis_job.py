@@ -1,6 +1,9 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Float
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.database.base_class import Base
+
+def _utcnow():
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 class AnalysisJob(Base):
     __tablename__ = "analysis_jobs"
@@ -14,5 +17,5 @@ class AnalysisJob(Base):
     
     error_message = Column(String, nullable=True)
     
-    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at = Column(DateTime, default=_utcnow, nullable=False)
+    updated_at = Column(DateTime, default=_utcnow, onupdate=_utcnow, nullable=False)

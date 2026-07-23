@@ -9,7 +9,7 @@ export const auditService = {
     const items: AuditEntry[] = data.map((log: any) => ({
       id: String(log.id),
       actor: log.username || "System",
-      action: log.action.replace(/_/g, " ").title || log.action,
+      action: (log.action ?? "").replace(/_/g, " "),
       resource: log.details || "System Operation",
       resource_type: log.action.includes("DOCUMENT") ? "document" : "application",
       status: "success" as const,

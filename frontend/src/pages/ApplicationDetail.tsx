@@ -1,7 +1,7 @@
 import { useParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import toast from "react-hot-toast";
+import { toast } from "sonner";
 import {
   FileText,
   ScrollText,
@@ -33,9 +33,13 @@ import { toErrorMessage } from "@/services/api";
 
 const STATUS_TONE: Record<string, string> = {
   draft: "bg-secondary text-muted-foreground",
+  submitted: "bg-secondary text-muted-foreground",
   in_review: "bg-primary/15 text-primary",
+  under_review: "bg-primary/15 text-primary",
   analyzing: "bg-warning/15 text-warning",
+  conditional: "bg-warning/15 text-warning",
   approved: "bg-success/15 text-success",
+  rejected: "bg-destructive/15 text-destructive",
   declined: "bg-destructive/15 text-destructive",
 };
 

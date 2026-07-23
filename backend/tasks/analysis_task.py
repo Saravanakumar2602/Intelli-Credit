@@ -1,4 +1,3 @@
-import asyncio
 import traceback
 from celery import shared_task
 from backend.database.connection import SessionLocal
@@ -104,7 +103,7 @@ async def async_analysis_pipeline(job_id: str, loan_app_id: int):
         
         # 6. Configurable Risk Engine execution
         update_job_progress(db, job_id, "RUNNING", 80.0, "Evaluating risk engine metrics")
-        risk_result = run_risk_scoring(db, ratios, news.get("sentiment", 0.0))
+        risk_result = run_risk_scoring(db, ratios, news.get("sentiment", 0.0), ai_pipeline_results.get("risk_assessment", {}))
         
         db_risk = RiskReport(
             loan_application_id=loan_app_id,
@@ -166,11 +165,11 @@ async def async_analysis_pipeline(job_id: str, loan_app_id: int):
 
 @shared_task(bind=True)
 def run_analysis_task(self, loan_app_id: int):
-    """Celery task entrypoint running the async pipeline synchronously"""
+    """Celery task entrypoint — runs the async pipeline in a fresh event loop."""
+    import asyncio
     job_id = self.request.id
     db = SessionLocal()
     try:
-        # Create the analysis job record in QUEUED state
         job = db.query(AnalysisJob).filter(AnalysisJob.id == job_id).first()
         if not job:
             job = AnalysisJob(id=job_id, loan_application_id=loan_app_id, status="QUEUED")
@@ -178,7 +177,11 @@ def run_analysis_task(self, loan_app_id: int):
             db.commit()
     finally:
         db.close()
-        
-    # Start the async execution loop
-    asyncio.run(async_analysis_pipeline(job_id, loan_app_id))
+
+    # Create a brand-new event loop so we never conflict with an existing one
+    loop = asyncio.new_event_loop()
+    try:
+        loop.run_until_complete(async_analysis_pipeline(job_id, loan_app_id))
+    finally:
+        loop.close()
     return {"job_id": job_id, "status": "finished"}

@@ -55,15 +55,15 @@ def list_applications(
             "purpose": "Corporate Funding",
             "status": loan.status.lower(),
             "submitted_at": loan.created_at.isoformat() + "Z",
-            "officer": officer_name or "Unassigned",
-            "risk_score": risk_score
+            "officer": officer_name,
+            "risk_score": risk_score,
         })
-        
+
     return {
         "items": items,
         "total": total,
         "page": page,
-        "page_size": limit
+        "page_size": limit,
     }
 
 @router.get("/{id}")
@@ -138,7 +138,7 @@ def get_application(
         ratios = financials.ratios_data if financials else None
         
         latest_analysis = {
-            "id": str(risk.id),
+            "id": str(loan.id),
             "application_id": str(loan.id),
             "company_name": company_name,
             "created_at": risk.created_at.isoformat() + "Z",
