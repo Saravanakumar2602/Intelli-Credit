@@ -1,0 +1,13 @@
+version: '3.8'
+
+services:
+  backend:
+    image: ghcr.io/saravanakumar2602/intelli-credit-backend:latest
+    container_name: intelli_credit_backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - /home/ubuntu/uploads:/app/uploads
+    env_file:
+      - .env
+    restart: unless-stopped
