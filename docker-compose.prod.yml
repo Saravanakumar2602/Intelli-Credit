@@ -1,30 +1,22 @@
-version: "3.8"
-
 services:
   backend:
     image: ghcr.io/saravanakumar2602/intelli-credit-backend:latest
     container_name: intelli_credit_backend
 
-    ports:
-      - "8000:8000"
+    restart: unless-stopped
 
     env_file:
       - .env
 
+    ports:
+      - "8000:8000"
+
     volumes:
       - /home/ubuntu/uploads:/app/uploads
-
-    restart: unless-stopped
 
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
       interval: 30s
       timeout: 10s
-      retries: 3
+      retries: 5
       start_period: 20s
-
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
